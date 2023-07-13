@@ -1,6 +1,9 @@
 from collections import OrderedDict
 from typing import Callable, Dict, List, Tuple
 
+from omegaconf import DictConfig
+from hydra.utils import instantiate
+
 import torch
 from torch.utils.data import DataLoader
 
@@ -47,10 +50,7 @@ class DashaClient(fl.client.NumPyClient):
 
 
 def gen_client_fn(
-    num_rounds: int,
-    num_epochs: int,
-    datasets: List[DataLoader],
-    learning_rate: float,
+    # datasets: List[DataLoader],
     model: DictConfig,
 ) -> DashaClient:  # pylint: disable=too-many-arguments
     """Generates the client function that creates the Flower Clients.
@@ -77,18 +77,14 @@ def gen_client_fn(
 
     def client_fn(cid: str) -> DashaClient:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        net = instantiate(model).to(device)
+        # net = instantiate(model).to(device)
+        net = None
 
         # Note: each client gets a different trainloader/valloader, so each client
         # will train and evaluate on their own unique data
-        trainloader = datasets[int(cid)]
+        # dataset = datasets[int(cid)]
+        dataset = None
 
-        return DashaClient(
-            net,
-            trainloader,
-            device,
-            num_epochs,
-            learning_rate,
-        )
+        return DashaClient(net, dataset, device)
 
     return client_fn

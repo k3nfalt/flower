@@ -24,8 +24,8 @@ class DatasetSplit(Enum):
     TRAIN = 'train'
 
 
-def find_pre_downloaded_or_download(cfg: DictConfig) -> None:
-    """ Finds a pre-downloaded dataset or downloads a new one
+def find_pre_downloaded_or_download_dataset(cfg: DictConfig) -> None:
+    """ Finds a pre-downloaded dataset or downloads it
 
     Parameters
     ----------
