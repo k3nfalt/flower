@@ -8,3 +8,12 @@ partitioned, please include all those functions and logic in the
 `dataset_preparation.py` module. You can use all those functions from functions/methods
 defined here of course.
 """
+
+def load_dataset(
+    config: DictConfig,
+    num_clients: int,
+    val_ratio: float = 0.1,
+    batch_size: Optional[int] = 32,
+    seed: Optional[int] = 42,
+) -> DataLoader:
+    pass

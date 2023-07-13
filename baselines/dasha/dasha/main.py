@@ -8,6 +8,7 @@ model is going to be evaluated, etc. At the end, this script saves the results.
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
+import flwr as fl
 
 from dataset_preparation import find_pre_downloaded_or_download
 
@@ -25,6 +26,8 @@ def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     find_pre_downloaded_or_download(cfg)
+    
+    load_dataset(cfg)
     # 2. Prepare your dataset
     # here you should call a function in datasets.py that returns whatever is needed to:
     # (1) ensure the server can access the dataset used to evaluate your model after
@@ -37,6 +40,16 @@ def main(cfg: DictConfig) -> None:
     # Define a function that returns another function that will be used during
     # simulation to instantiate each individual client
     # client_fn = client.<my_function_that_returns_a_function>()
+    client_fn = client.gen_client_fn(
+        num_clients=cfg.num_clients,
+        num_epochs=cfg.num_epochs,
+        trainloaders=trainloaders,
+        valloaders=valloaders,
+        num_rounds=cfg.num_rounds,
+        learning_rate=cfg.learning_rate,
+        stragglers=cfg.stragglers_fraction,
+        model=cfg.model,
+    ))
 
     # 4. Define your strategy
     # pass all relevant argument (including the global dataset used after aggregation,
@@ -44,7 +57,16 @@ def main(cfg: DictConfig) -> None:
     # strategy = instantiate(cfg.strategy, <additional arguments if desired>)
 
     # 5. Start Simulation
-    # history = fl.simulation.start_simulation(<arguments for simulation>)
+    # history = fl.simulation.start_simulation(
+    #     client_fn=client_fn,
+    #     num_clients=cfg.num_clients,
+    #     config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
+    #     client_resources={
+    #         "num_cpus": cfg.client_resources.num_cpus,
+    #         "num_gpus": cfg.client_resources.num_gpus,
+    #     },
+    #     strategy=strategy,
+    # )
 
     # 6. Save your results
     # Here you can save the `history` returned by the simulation and include
