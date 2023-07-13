@@ -9,6 +9,9 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 
+from dataset_preparation import find_pre_downloaded_or_download
+
+
 @hydra.main(config_path="conf", config_name="base", version_base=None)
 def main(cfg: DictConfig) -> None:
     """Run the baseline.
@@ -21,6 +24,7 @@ def main(cfg: DictConfig) -> None:
     # 1. Print parsed config
     print(OmegaConf.to_yaml(cfg))
 
+    find_pre_downloaded_or_download(cfg)
     # 2. Prepare your dataset
     # here you should call a function in datasets.py that returns whatever is needed to:
     # (1) ensure the server can access the dataset used to evaluate your model after
@@ -51,3 +55,6 @@ def main(cfg: DictConfig) -> None:
     # Hydra will generate for you a directory each time you run the code. You
     # can retrieve the path to that directory with this:
     # save_path = HydraConfig.get().runtime.output_dir
+    
+if __name__ == "__main__":
+    main()

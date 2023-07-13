@@ -6,29 +6,40 @@ first download the dataset and partition it and then run the experiments, please
 uncomment the lines below and tell us in the README.md (see the "Running the Experiment"
 block) that this file should be executed first.
 """
-# import hydra
-# from hydra.core.hydra_config import HydraConfig
-# from hydra.utils import call, instantiate
-# from omegaconf import DictConfig, OmegaConf
+import os
+import urllib.request
+from enum import Enum
+
+import hydra
+from hydra.core.hydra_config import HydraConfig
+from hydra.utils import call, instantiate
+from omegaconf import DictConfig, OmegaConf
 
 
-# @hydra.main(config_path="conf", config_name="base", version_base=None)
-# def download_and_preprocess(cfg: DictConfig) -> None:
-#     """Does everything needed to get the dataset.
+class DatasetType(Enum):
+    LIBSVM = 'libsvm'
+    
+    
+class DatasetSplit(Enum):
+    TRAIN = 'train'
 
-#     Parameters
-#     ----------
-#     cfg : DictConfig
-#         An omegaconf object that stores the hydra config.
-#     """
 
-#     ## 1. print parsed config
-#     print(OmegaConf.to_yaml(cfg))
+def find_pre_downloaded_or_download(cfg: DictConfig) -> None:
+    """ Finds a pre-downloaded dataset or downloads a new one
 
-#     # Please include here all the logic
-#     # Please use the Hydra config style as much as possible specially
-#     # for parts that can be customised (e.g. how data is partitioned)
-
-# if __name__ == "__main__":
-
-#     download_and_preprocess()
+    Parameters
+    ----------
+    cfg : DictConfig
+        An omegaconf object that stores the hydra config.
+    """
+    
+    assert cfg.dataset.type == DatasetType.LIBSVM.value
+    path_to_dataset = cfg.dataset.path_to_dataset
+    assert path_to_dataset is not None
+    dataset_name = cfg.dataset.dataset_name
+    target_file = os.path.join(path_to_dataset, "{}_{}".format(dataset_name, DatasetSplit.TRAIN.value))
+    if os.path.exists(target_file):
+        return
+    print("Downloading the dataset")
+    dataset_url = cfg.dataset._dataset_urls[dataset_name][DatasetSplit.TRAIN.value]
+    urllib.request.urlretrieve(dataset_url, target_file)
