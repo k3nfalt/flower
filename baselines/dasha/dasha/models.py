@@ -13,12 +13,12 @@ import torch.nn as nn
 class LinearNet(nn.Module):
     """A simple net with one linear layer"""
 
-    def __init__(self, num_features: int, num_classes: int) -> None:
+    def __init__(self, num_input_features: int, num_output_features: int) -> None:
         super().__init__()
-        self.fc = nn.Linear(num_features, num_classes)
+        self.fc = nn.Linear(num_input_features, num_output_features)
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        output_tensor = self.fc(torch.view(input_tensor.shape[0], -1))
+        output_tensor = self.fc(input_tensor.view(input_tensor.shape[0], -1))
         return output_tensor
 
 
@@ -43,7 +43,9 @@ class NonConvexLoss(nn.Module):
         torch.Tensor
             Loss value
         """
+        assert len(input.shape) == 2 and input.shape[1] == 1
         input_target = input * target
         probs = torch.sigmoid(input_target)
         loss = torch.square(1 - probs)
         loss = torch.mean(loss)
+        return loss
