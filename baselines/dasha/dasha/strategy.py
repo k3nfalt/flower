@@ -1,27 +1,11 @@
 
 
-class FedCustom(fl.server.strategy.Strategy):
+class DashaStrategy(fl.server.strategy.Strategy):
     def __init__(self):
         pass
     
-    
-    @abstractmethod
-    def initialize_parameters(
-        self, client_manager: ClientManager
-    ) -> Optional[Parameters]:
-        """Initialize the (global) model parameters.
-
-        Parameters
-        ----------
-        client_manager : ClientManager
-            The client manager which holds all currently connected clients.
-
-        Returns
-        -------
-        parameters : Optional[Parameters]
-            If parameters are returned, then the server will treat these as the
-            initial global model parameters.
-        """
+    def initialize_parameters(self, client_manager: ClientManager) -> Optional[Parameters]:
+        return None
 
     @abstractmethod
     def configure_fit(
