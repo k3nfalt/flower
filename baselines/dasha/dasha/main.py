@@ -11,6 +11,7 @@ from omegaconf import DictConfig, OmegaConf
 import flwr as fl
 
 from dataset_preparation import find_pre_downloaded_or_download
+import client
 
 
 @hydra.main(config_path="conf", config_name="base", version_base=None)
@@ -44,12 +45,11 @@ def main(cfg: DictConfig) -> None:
         num_clients=cfg.num_clients,
         num_epochs=cfg.num_epochs,
         trainloaders=trainloaders,
-        valloaders=valloaders,
         num_rounds=cfg.num_rounds,
         learning_rate=cfg.learning_rate,
         stragglers=cfg.stragglers_fraction,
         model=cfg.model,
-    ))
+    )
 
     # 4. Define your strategy
     # pass all relevant argument (including the global dataset used after aggregation,

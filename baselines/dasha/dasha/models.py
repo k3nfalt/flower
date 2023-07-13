@@ -5,3 +5,45 @@ modifications) you might be better off instantiating your  model directly from t
 config. In this way, swapping your model for  another one can be done without changing
 the python code at all
 """
+
+import torch
+import torch.nn as nn
+
+
+class LinearNet(nn.Module):
+    """A simple net with one linear layer"""
+
+    def __init__(self, num_features: int, num_classes: int) -> None:
+        super().__init__()
+        self.fc = nn.Linear(num_features, num_classes)
+
+    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
+        output_tensor = self.fc(torch.view(input_tensor.shape[0], -1))
+        return output_tensor
+
+
+class NonConvexLoss(nn.Module):
+    """A nonconvex loss from Tyurin A. et al., 2023 paper :
+
+    [DASHA: Distributed Nonconvex Optimization with Communication Compression and Optimal Oracle Complexity]
+    (https://openreview.net/forum?id=VA1YpcNr7ul)
+    """
+    
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        input: torch.Tensor
+            Logits of a prediction model
+        target : torch.Tensor
+            Assumes that the elements of target belong to the set {-1, 1}
+
+        Returns
+        -------
+        torch.Tensor
+            Loss value
+        """
+        input_target = input * target
+        probs = torch.sigmoid(input_target)
+        loss = torch.square(1 - probs)
+        loss = torch.mean(loss)
