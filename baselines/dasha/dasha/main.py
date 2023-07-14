@@ -12,7 +12,7 @@ from omegaconf import DictConfig, OmegaConf
 import flwr as fl
 
 from dataset_preparation import find_pre_downloaded_or_download_dataset
-import client
+from dasha import client, strategy
 
 
 @hydra.main(config_path="conf", config_name="base", version_base=None)
@@ -50,7 +50,7 @@ def main(cfg: DictConfig) -> None:
     # 4. Define your strategy
     # pass all relevant argument (including the global dataset used after aggregation,
     # if needed by your method.)
-    strategy = instantiate(cfg.strategy, <additional arguments if desired>)
+    strategy_instance = instantiate(cfg.strategy)
 
     # 5. Start Simulation
     history = fl.simulation.start_simulation(
@@ -61,7 +61,7 @@ def main(cfg: DictConfig) -> None:
             "num_cpus": cfg.client_resources.num_cpus,
             "num_gpus": cfg.client_resources.num_gpus,
         },
-        strategy=strategy,
+        strategy=strategy_instance,
     )
 
     # 6. Save your results

@@ -13,11 +13,12 @@ from flwr.common import (
     parameters_to_ndarrays,
 )
 from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
+from flwr.server.strategy.strategy import Strategy
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 
 
-class DashaStrategy(fl.server.strategy.Strategy):
+class DashaStrategy(Strategy):
     _EMPTY_CONFIG = {}
     def __init__(self, step_size):
         self._step_size = step_size

@@ -17,8 +17,8 @@ model:
   # model config
 
 strategy:
-  _target_: # points to your strategy (either custom or exiting in Flower)
-  # rest of strategy config
+  _target_: dasha.strategy.DashaStrategy
+  step_size: 0.01
 
 client:
   # client config
