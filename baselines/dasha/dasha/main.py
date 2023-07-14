@@ -53,16 +53,16 @@ def main(cfg: DictConfig) -> None:
     strategy_instance = instantiate(cfg.strategy)
 
     # 5. Start Simulation
-    history = fl.simulation.start_simulation(
-        client_fn=client_fn,
-        num_clients=cfg.num_clients,
-        config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
-        client_resources={
-            "num_cpus": cfg.client_resources.num_cpus,
-            "num_gpus": cfg.client_resources.num_gpus,
-        },
-        strategy=strategy_instance,
-    )
+    # history = fl.simulation.start_simulation(
+    #     client_fn=client_fn,
+    #     num_clients=cfg.num_clients,
+    #     config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
+    #     client_resources={
+    #         "num_cpus": cfg.client_resources.num_cpus,
+    #         "num_gpus": cfg.client_resources.num_gpus,
+    #     },
+    #     strategy=strategy_instance,
+    # )
 
     # 6. Save your results
     # Here you can save the `history` returned by the simulation and include
