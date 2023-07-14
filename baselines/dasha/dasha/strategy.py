@@ -19,8 +19,10 @@ from flwr.server.client_proxy import ClientProxy
 
 class DashaStrategy(fl.server.strategy.Strategy):
     _EMPTY_CONFIG = {}
-    def __init__(self):
-        pass
+    def __init__(self, step_size):
+        self._step_size = step_size
+        self._parameters = None
+        self._gradient_estimators = None
     
     def initialize_parameters(self, client_manager: ClientManager) -> Optional[Parameters]:
         return None
@@ -34,7 +36,7 @@ class DashaStrategy(fl.server.strategy.Strategy):
     def configure_evaluate(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, EvaluateIns]]:
-        return self.configure_fit(server_round, parameters, client_manager)
+        raise NotImplementedError()
 
     def aggregate_fit(
         self,
@@ -43,11 +45,14 @@ class DashaStrategy(fl.server.strategy.Strategy):
         failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
         
+        for parameter, gradient_estimator in zip(self._parameters, self._gradient_estimators):
+            parameter -= self._step_size * gradient_estimator
         assert len(failures) == 0
-        parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1)
-                          for _, fit_res in results]
+        parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
         aggregated_vectors = ndarrays_to_parameters(aggregate(parsed_results))
-        return aggregated_vectors, {}
+        for aggregated_vector, gradient_estimator in zip(aggregated_vectors, self._gradient_estimators):
+            gradient_estimator += aggregated_vector
+        return self._parameters, {}
 
     def aggregate_evaluate(
         self,
@@ -62,4 +67,6 @@ class DashaStrategy(fl.server.strategy.Strategy):
     def evaluate(
         self, server_round: int, parameters: Parameters
     ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
+        if server_round == 0:
+            self._parameters = parameters
         return None
