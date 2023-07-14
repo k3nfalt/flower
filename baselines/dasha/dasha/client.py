@@ -15,11 +15,11 @@ class DashaClient(fl.client.NumPyClient):
 
     def __init__(
         self,
-        net: torch.nn.Module,
+        function: torch.nn.Module,
         dataloader: DataLoader,
         device: torch.device,
     ):
-        self.net = net
+        self.function = function
         self.trainloader = trainloader
         self.valloader = valloader
         self.device = device
@@ -37,8 +37,13 @@ class DashaClient(fl.client.NumPyClient):
 
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         self.set_parameters(parameters)
+        
+        self.function.zero_grad()
+        function_value = self.function(None)
+        function_value.backward()
+        gradients = [val.grad.cpu().numpy() for _, val in self.net.state_dict().items()]
 
-        return self.get_parameters({}), len(self.trainloader), {"is_straggler": False}
+        return gradients, None, {}
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]
