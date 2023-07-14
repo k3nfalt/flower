@@ -1,148 +1,65 @@
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+from flwr.common import (
+    EvaluateIns,
+    EvaluateRes,
+    FitIns,
+    FitRes,
+    MetricsAggregationFn,
+    NDArrays,
+    Parameters,
+    Scalar,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+)
+from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
+from flwr.server.client_manager import ClientManager
+from flwr.server.client_proxy import ClientProxy
 
 
 class DashaStrategy(fl.server.strategy.Strategy):
+    _EMPTY_CONFIG = {}
     def __init__(self):
         pass
     
     def initialize_parameters(self, client_manager: ClientManager) -> Optional[Parameters]:
         return None
 
-    @abstractmethod
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
-        """Configure the next round of training.
+        fit_ins = FitIns(parameters, self._EMPTY_CONFIG)
+        return [(client, fit_ins) for client in client_manager.all()]
 
-        Parameters
-        ----------
-        server_round : int
-            The current round of federated learning.
-        parameters : Parameters
-            The current (global) model parameters.
-        client_manager : ClientManager
-            The client manager which holds all currently connected clients.
+    def configure_evaluate(
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    ) -> List[Tuple[ClientProxy, EvaluateIns]]:
+        return self.configure_fit(server_round, parameters, client_manager)
 
-        Returns
-        -------
-        fit_configuration : List[Tuple[ClientProxy, FitIns]]
-            A list of tuples. Each tuple in the list identifies a `ClientProxy` and the
-            `FitIns` for this particular `ClientProxy`. If a particular `ClientProxy`
-            is not included in this list, it means that this `ClientProxy`
-            will not participate in the next round of federated learning.
-        """
-
-    @abstractmethod
     def aggregate_fit(
         self,
         server_round: int,
         results: List[Tuple[ClientProxy, FitRes]],
         failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
-        """Aggregate training results.
+        
+        assert len(failures) == 0
+        parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1)
+                          for _, fit_res in results]
+        aggregated_vectors = ndarrays_to_parameters(aggregate(parsed_results))
+        return aggregated_vectors, {}
 
-        Parameters
-        ----------
-        server_round : int
-            The current round of federated learning.
-        results : List[Tuple[ClientProxy, FitRes]]
-            Successful updates from the previously selected and configured
-            clients. Each pair of `(ClientProxy, FitRes)` constitutes a
-            successful update from one of the previously selected clients. Not
-            that not all previously selected clients are necessarily included in
-            this list: a client might drop out and not submit a result. For each
-            client that did not submit an update, there should be an `Exception`
-            in `failures`.
-        failures : List[Union[Tuple[ClientProxy, FitRes], BaseException]]
-            Exceptions that occurred while the server was waiting for client
-            updates.
-
-        Returns
-        -------
-        parameters : Optional[Parameters]
-            If parameters are returned, then the server will treat these as the
-            new global model parameters (i.e., it will replace the previous
-            parameters with the ones returned from this method). If `None` is
-            returned (e.g., because there were only failures and no viable
-            results) then the server will no update the previous model
-            parameters, the updates received in this round are discarded, and
-            the global model parameters remain the same.
-        """
-
-    @abstractmethod
-    def configure_evaluate(
-        self, server_round: int, parameters: Parameters, client_manager: ClientManager
-    ) -> List[Tuple[ClientProxy, EvaluateIns]]:
-        """Configure the next round of evaluation.
-
-        Parameters
-        ----------
-        server_round : int
-            The current round of federated learning.
-        parameters : Parameters
-            The current (global) model parameters.
-        client_manager : ClientManager
-            The client manager which holds all currently connected clients.
-
-        Returns
-        -------
-        evaluate_configuration : List[Tuple[ClientProxy, EvaluateIns]]
-            A list of tuples. Each tuple in the list identifies a `ClientProxy` and the
-            `EvaluateIns` for this particular `ClientProxy`. If a particular
-            `ClientProxy` is not included in this list, it means that this
-            `ClientProxy` will not participate in the next round of federated
-            evaluation.
-        """
-
-    @abstractmethod
     def aggregate_evaluate(
         self,
         server_round: int,
         results: List[Tuple[ClientProxy, EvaluateRes]],
         failures: List[Union[Tuple[ClientProxy, EvaluateRes], BaseException]],
     ) -> Tuple[Optional[float], Dict[str, Scalar]]:
-        """Aggregate evaluation results.
+        assert len(failures) == 0
+        loss_aggregated = weighted_loss_avg([(1, evaluate_res.loss) for _, evaluate_res in results])
+        return loss_aggregated, {}
 
-        Parameters
-        ----------
-        server_round : int
-            The current round of federated learning.
-        results : List[Tuple[ClientProxy, FitRes]]
-            Successful updates from the
-            previously selected and configured clients. Each pair of
-            `(ClientProxy, FitRes` constitutes a successful update from one of the
-            previously selected clients. Not that not all previously selected
-            clients are necessarily included in this list: a client might drop out
-            and not submit a result. For each client that did not submit an update,
-            there should be an `Exception` in `failures`.
-        failures : List[Union[Tuple[ClientProxy, EvaluateRes], BaseException]]
-            Exceptions that occurred while the server was waiting for client updates.
-
-        Returns
-        -------
-        aggregation_result : Optional[float]
-            The aggregated evaluation result. Aggregation typically uses some variant
-            of a weighted average.
-        """
-
-    @abstractmethod
     def evaluate(
         self, server_round: int, parameters: Parameters
     ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-        """Evaluate the current model parameters.
-
-        This function can be used to perform centralized (i.e., server-side) evaluation
-        of model parameters.
-
-        Parameters
-        ----------
-        server_round : int
-            The current round of federated learning.
-        parameters: Parameters
-            The current (global) model parameters.
-
-        Returns
-        -------
-        evaluation_result : Optional[Tuple[float, Dict[str, Scalar]]]
-            The evaluation result, usually a Tuple containing loss and a
-            dictionary containing task-specific metrics (e.g., accuracy).
-        """
+        return None
