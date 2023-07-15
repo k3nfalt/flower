@@ -1,95 +1,49 @@
 from collections import OrderedDict
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple, Optional
 
 from omegaconf import DictConfig
 from hydra.utils import instantiate
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
 
 import flwr as fl
 from flwr.common.typing import NDArrays, Scalar
 
 
 class DashaClient(fl.client.NumPyClient):  
-
     def __init__(
         self,
         function: torch.nn.Module,
-        dataloader: DataLoader,
-        device: torch.device,
+        dataset: Dataset,
+        device: torch.device
     ):
-        self.function = function
-        self.trainloader = trainloader
-        self.valloader = valloader
-        self.device = device
-        self.num_epochs = num_epochs
-        self.learning_rate = learning_rate
-        self.straggler_schedule = straggler_schedule
+        self._function = function
+        self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
-        return [val.cpu().numpy() for _, val in self.net.state_dict().items()]
+        return [val.cpu().numpy() for _, val in self._function.state_dict().items()]
 
     def set_parameters(self, parameters: NDArrays) -> None:
-        params_dict = zip(self.net.state_dict().keys(), parameters)
+        params_dict = zip(self._function.state_dict().keys(), parameters)
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
-        self.net.load_state_dict(state_dict, strict=True)
+        self._function.load_state_dict(state_dict, strict=True)
 
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         self.set_parameters(parameters)
-        
-        self.function.zero_grad()
-        function_value = self.function(None)
+        self._function.zero_grad()
+        function_value = self._function(None)
         function_value.backward()
-        gradients = [val.grad.cpu().numpy() for _, val in self.net.state_dict().items()]
-
+        gradients = [val.grad.cpu().numpy() for _, val in self._function.state_dict().items()]
         return gradients, None, {}
 
     def evaluate(
-        self, parameters: NDArrays, config: Dict[str, Scalar]
-    ) -> Tuple[float, int, Dict]:
-        """Implements distributed evaluation for a given client."""
+        self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
         self.set_parameters(parameters)
-        loss, accuracy = test(self.net, self.valloader, self.device)
-        return float(loss), len(self.valloader), {"accuracy": float(accuracy)}
+        loss = self._function(self._features, self._targets)
+        return float(loss), len(self._targets), {}
 
-
-def gen_client_fn(
-    # datasets: List[DataLoader],
-    model: DictConfig,
-) -> DashaClient:  # pylint: disable=too-many-arguments
-    """Generates the client function that creates the Flower Clients.
-
-    Parameters
-    ----------
-    num_rounds: int
-        The number of rounds in the experiment. This is used to construct
-        the scheduling for stragglers
-    num_epochs : int
-        The number of local epochs each client should run the training for before
-        sending it to the server.
-    datasets: List[DataLoader]
-        A list of DataLoaders, each pointing to the dataset training partition
-        belonging to a particular client.
-    learning_rate : float
-        The learning rate for the SGD  optimizer of clients.
-
-    Returns
-    -------
-    Callable[[str], DashaClient]
-        A DashaClient client generation function
-    """
-
-    def client_fn(cid: str) -> DashaClient:
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # net = instantiate(model).to(device)
-        net = None
-
-        # Note: each client gets a different trainloader/valloader, so each client
-        # will train and evaluate on their own unique data
-        # dataset = datasets[int(cid)]
-        dataset = None
-
-        return DashaClient(net, dataset, device)
-
-    return client_fn
+    def _prepare_input(self, dataset, device):
+        self._features, self._targets = dataset[:]
+        self._features = self._features.to(device)
+        self._targets = self._targets.to(device)
