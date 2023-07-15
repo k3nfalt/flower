@@ -15,18 +15,26 @@ from dataset_preparation import find_pre_downloaded_or_download_dataset
 from dasha import client, strategy
 
 
+LOCAL_ADDRESS = "0.0.0.0:8080"
+
+
+def _parallel_run(cfg: DictConfig, index_parallel: int) -> None:
+    dataset = load_dataset(cfg)
+    if index_parallel == 0:
+        strategy_instance = instantiate(cfg.strategy)
+        fl.server.start_server(server_address=LOCAL_ADDRESS, 
+                               config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
+                               strategy=strategy_instance)
+    else:
+        index_client = index_parallel - 1
+        client_instance = instantiate(cfg.client)
+        fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
+                                     client=client_instance)
+
+
+
 @hydra.main(config_path="conf", config_name="base", version_base=None)
 def main(cfg: DictConfig) -> None:
-    """Run the baseline.
-
-    Parameters
-    ----------
-    cfg : DictConfig
-        An omegaconf object that stores the hydra config.
-    """
-    # 1. Print parsed config
-    # print(OmegaConf.to_yaml(cfg))
-
     find_pre_downloaded_or_download_dataset(cfg)
     
     # dataloaders = load_dataset(cfg)
