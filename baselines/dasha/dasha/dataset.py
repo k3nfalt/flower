@@ -1,19 +1,29 @@
-"""Handle basic dataset creation.
+from enum import Enum
 
-In case of PyTorch it should return dataloaders for your dataset (for both the clients
-and the server). If you are using a custom dataset class, this module is the place to
-define it. If your dataset requires to be downloaded (and this is not done
-automatically -- e.g. as it is the case for many dataset in TorchVision) and
-partitioned, please include all those functions and logic in the
-`dataset_preparation.py` module. You can use all those functions from functions/methods
-defined here of course.
-"""
+import torch
+from torch.utils.data import Dataset
+import torch.utils.data as data_utils
+from omegaconf import DictConfig
+from sklearn.datasets import load_svmlight_file
+import numpy as np
 
-def load_dataset(
-    config: DictConfig,
-    num_clients: int,
-    val_ratio: float = 0.1,
-    batch_size: Optional[int] = 32,
-    seed: Optional[int] = 42,
-) -> DataLoader:
-    pass
+from dasha.dataset_preparation import DatasetType, train_dataset_path
+
+
+class LIBSVMDatasetName(Enum):
+    MUSHROOMS = 'mushrooms'
+
+
+def load_dataset(cfg: DictConfig) -> Dataset:
+    assert cfg.dataset.type == DatasetType.LIBSVM.value
+    path_to_dataset = cfg.dataset.path_to_dataset
+    dataset_name = cfg.dataset.dataset_name
+    data, labels = load_svmlight_file(train_dataset_path(path_to_dataset, dataset_name))
+    data = data.toarray().astype(np.float32)
+    print("Original labels: {}".format(np.unique(labels, return_counts=True)))
+    print("Features Shape: {}".format(data.shape))
+    if dataset_name == LIBSVMDatasetName.MUSHROOMS.value:
+        labels = labels.astype(np.int64) - 1
+    else:
+        raise RuntimeError("Wrong dataset")
+    return data_utils.TensorDataset(torch.Tensor(data), torch.Tensor(labels))
