@@ -22,7 +22,7 @@ class DashaClient(fl.client.NumPyClient):
         self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
-        return [val.cpu().numpy() for _, val in self._function.named_parameters()]
+        return [val.detach().cpu().numpy() for _, val in self._function.named_parameters()]
 
     def set_parameters(self, parameters: NDArrays) -> None:
         state_dict = {k: torch.Tensor(parameters[i]) for i, (k, _) in enumerate(self._function.named_parameters())}
