@@ -9,17 +9,19 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
+import torch
+from torch.utils.data import random_split
+
 import flwr as fl
 
+import dasha
 from dataset_preparation import find_pre_downloaded_or_download_dataset
-from dasha import client, strategy
 
 
 LOCAL_ADDRESS = "0.0.0.0:8080"
 
 
 def _parallel_run(cfg: DictConfig, index_parallel: int) -> None:
-    dataset = load_dataset(cfg)
     if index_parallel == 0:
         strategy_instance = instantiate(cfg.strategy)
         fl.server.start_server(server_address=LOCAL_ADDRESS, 
@@ -27,6 +29,9 @@ def _parallel_run(cfg: DictConfig, index_parallel: int) -> None:
                                strategy=strategy_instance)
     else:
         index_client = index_parallel - 1
+        dataset = dasha.dataset.load_dataset(cfg)
+        datasets = dasha.dataset.random_split(dataset, cfg.num_clients)
+        local_dataset = datasets[index_client]
         client_instance = instantiate(cfg.client)
         fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
                                      client=client_instance)
@@ -35,7 +40,7 @@ def _parallel_run(cfg: DictConfig, index_parallel: int) -> None:
 
 @hydra.main(config_path="conf", config_name="base", version_base=None)
 def main(cfg: DictConfig) -> None:
-    find_pre_downloaded_or_download_dataset(cfg)
+    dasha.dataset_preparation.find_pre_downloaded_or_download_dataset(cfg)
     
     # dataloaders = load_dataset(cfg)
     
