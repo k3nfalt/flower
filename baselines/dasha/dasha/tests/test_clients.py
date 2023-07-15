@@ -44,12 +44,22 @@ class TestDashaClient(unittest.TestCase):
 
     def testEvaluate(self) -> None:
         parameter = 3.0
-        parameters_list = [np.array([3.0])]
+        parameters_list = [np.array([parameter])]
         loss, num_samples, _ = self._client.evaluate(parameters_list, config={})
         self.assertEqual(num_samples, 2)
         loss_actual = sum([0.5 * (parameter * self._features[i][0] - self._targets[i][0]) ** 2 
                            for i in range(len(self._targets))]) / len(self._targets)
         self.assertAlmostEqual(float(loss), loss_actual)
+
+    def testFir(self) -> None:
+        parameter = 3.0
+        parameters_list = [np.array([parameter])]
+        gradients, num_samples, _ = self._client.fit(parameters_list, config={})
+        self.assertEqual(num_samples, 2)
+        self.assertEqual(len(gradients), 1)
+        gradient_actual = sum([parameter * (parameter * self._features[i][0] - self._targets[i][0])
+                           for i in range(len(self._targets))]) / len(self._targets)
+        self.assertAlmostEqual(float(gradients[0]), gradient_actual)
 
 if __name__ == "__main__":
     unittest.main()

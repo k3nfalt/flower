@@ -22,20 +22,19 @@ class DashaClient(fl.client.NumPyClient):
         self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
-        return [val.cpu().numpy() for _, val in self._function.state_dict().items()]
+        return [val.cpu().numpy() for _, val in self._function.named_parameters()]
 
     def set_parameters(self, parameters: NDArrays) -> None:
-        params_dict = zip(self._function.state_dict().keys(), parameters)
-        state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
+        state_dict = {k: torch.Tensor(parameters[i]) for i, (k, _) in enumerate(self._function.named_parameters())}
         self._function.load_state_dict(state_dict, strict=True)
 
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         self.set_parameters(parameters)
         self._function.zero_grad()
-        function_value = self._function(None)
+        function_value = self._function(self._features, self._targets)
         function_value.backward()
-        gradients = [val.grad.cpu().numpy() for _, val in self._function.state_dict().items()]
-        return gradients, None, {}
+        gradients = [val.grad.cpu().numpy() for val in self._function.parameters()]
+        return gradients, len(self._targets), {}
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
