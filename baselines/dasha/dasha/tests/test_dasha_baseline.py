@@ -30,6 +30,15 @@ class TestDashaBaseline(unittest.TestCase):
             "strategy": {
                 "_target_": "dasha.strategy.DashaStrategy",
                 "step_size": 0.01
+            },
+            "model": {
+                "_target_": "dasha.models.LinearNetWithNonConvexLoss",
+                "num_input_features": 112,
+                "num_output_features": 2
+            },
+            "client": {
+                "_target_": "dasha.client.DashaClient",
+                "device": "cpu"
             }
         })
         run_parallel(cfg)

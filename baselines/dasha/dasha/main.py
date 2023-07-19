@@ -1,4 +1,7 @@
-import concurrent.futures
+import sys
+
+from typing import Tuple
+from multiprocessing import Pool
 
 import hydra
 from hydra.utils import instantiate
@@ -15,31 +18,37 @@ from dasha.dataset_preparation import find_pre_downloaded_or_download_dataset
 LOCAL_ADDRESS = "0.0.0.0:8080"
 
 
-def _parallel_run(cfg: DictConfig, index_parallel: int) -> None:
-    if index_parallel == 0:
-        strategy_instance = instantiate(cfg.strategy)
-        fl.server.start_server(server_address=LOCAL_ADDRESS, 
-                               config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
-                               strategy=strategy_instance)
-    else:
-        index_client = index_parallel - 1
-        dataset = dasha.dataset.load_dataset(cfg)
-        datasets = dasha.dataset.random_split(dataset, cfg.num_clients)
-        local_dataset = datasets[index_client]
-        function = instantiate(cfg.model)
-        client_instance = instantiate(cfg.client, 
-                                      function=function,
-                                      dataset=local_dataset)
-        fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
-                                     client=client_instance)
+def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
+    try:
+        cfg, index_parallel = cfg_and_index_parallel
+        if index_parallel == 0:
+            strategy_instance = instantiate(cfg.strategy)
+            fl.server.start_server(server_address=LOCAL_ADDRESS, 
+                                config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
+                                strategy=strategy_instance)
+        else:
+            index_client = index_parallel - 1
+            dataset = dasha.dataset.load_dataset(cfg)
+            datasets = dasha.dataset.random_split(dataset, cfg.num_clients)
+            local_dataset = datasets[index_client]
+            function = instantiate(cfg.model)
+            client_instance = instantiate(cfg.client, 
+                                        function=function,
+                                        dataset=local_dataset)
+            fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
+                                        client=client_instance)
+    except Exception as ex:
+        print(ex)
 
 
 def run_parallel(cfg: DictConfig) -> None:
-    with concurrent.futures.ProcessPoolExecutor(max_workers=cfg.num_clients + 1) as executor:
-        running_tasks = [executor.submit(_parallel_run, cfg, index_parallel=index_parallel)
-                         for index_parallel in range(cfg.num_clients + 1)]
-        for running_task in running_tasks:
-            running_task.result()
+    sys.stderr = sys.stdout
+    with Pool(processes=cfg.num_clients + 1) as pool:
+        pool.map(_parallel_run, [(cfg, index_parallel) for index_parallel in range(cfg.num_clients + 1)])
+        # running_tasks = [executor.submit(_parallel_run, cfg, index_parallel=index_parallel)
+        #                  for index_parallel in range(cfg.num_clients + 1)]
+        # for running_task in running_tasks:
+        #     running_task.result()
 
 
 @hydra.main(config_path="conf", config_name="base", version_base=None)

@@ -49,3 +49,14 @@ class NonConvexLoss(nn.Module):
         loss = torch.square(1 - probs)
         loss = torch.mean(loss)
         return loss
+
+
+class LinearNetWithNonConvexLoss(nn.Module):
+    def __init__(self, num_input_features: int, num_output_features: int) -> None:
+        super().__init__()
+        self._net = LinearNet(num_input_features, num_output_features)
+        self._loss = NonConvexLoss()
+    
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        logits = self._net(input)
+        return self._loss(logits, target)
