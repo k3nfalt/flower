@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 
 import flwr as fl
 from flwr.common.typing import NDArrays, Scalar
+from logging import DEBUG
 
 
 class DashaClient(fl.client.NumPyClient):  
@@ -25,7 +26,7 @@ class DashaClient(fl.client.NumPyClient):
         return [val.detach().cpu().numpy() for _, val in self._function.named_parameters()]
 
     def set_parameters(self, parameters: NDArrays) -> None:
-        state_dict = {k: torch.Tensor(parameters[i]) for i, (k, _) in enumerate(self._function.named_parameters())}
+        state_dict = {k: torch.Tensor(parameter) for parameter, (k, _) in zip(parameters, self._function.named_parameters())}
         self._function.load_state_dict(state_dict, strict=True)
 
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:

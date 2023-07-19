@@ -1,6 +1,8 @@
 import sys
+import traceback
 
 from typing import Tuple
+# import concurrent.futures
 from multiprocessing import Pool
 
 import hydra
@@ -38,13 +40,14 @@ def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
             fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
                                         client=client_instance)
     except Exception as ex:
-        print(ex)
+        print(traceback.format_exc())
 
 
 def run_parallel(cfg: DictConfig) -> None:
     sys.stderr = sys.stdout
     with Pool(processes=cfg.num_clients + 1) as pool:
         pool.map(_parallel_run, [(cfg, index_parallel) for index_parallel in range(cfg.num_clients + 1)])
+    # with concurrent.futures.ProcessPoolExecutor() as executor:
         # running_tasks = [executor.submit(_parallel_run, cfg, index_parallel=index_parallel)
         #                  for index_parallel in range(cfg.num_clients + 1)]
         # for running_task in running_tasks:

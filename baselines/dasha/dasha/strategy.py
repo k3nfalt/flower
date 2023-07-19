@@ -37,7 +37,8 @@ class DashaStrategy(Strategy):
     def configure_evaluate(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, EvaluateIns]]:
-        raise NotImplementedError()
+        evel_ins = EvaluateIns(parameters, self._EMPTY_CONFIG)
+        return [(client, evel_ins) for client in client_manager.all()]
 
     def aggregate_fit(
         self,
@@ -69,5 +70,5 @@ class DashaStrategy(Strategy):
         self, server_round: int, parameters: Parameters
     ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
         if server_round == 0:
-            self._parameters = parameters
+            self._parameters = parameters_to_ndarrays(parameters)
         return None
