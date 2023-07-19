@@ -1,5 +1,6 @@
 import sys
 import traceback
+import time
 
 from typing import Tuple
 # import concurrent.futures
@@ -24,10 +25,10 @@ def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
     try:
         cfg, index_parallel = cfg_and_index_parallel
         if index_parallel == 0:
-            strategy_instance = instantiate(cfg.strategy)
-            fl.server.start_server(server_address=LOCAL_ADDRESS, 
-                                config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
-                                strategy=strategy_instance)
+            strategy_instance = instantiate(cfg.strategy, num_clients=cfg.num_clients)
+            return fl.server.start_server(server_address=LOCAL_ADDRESS, 
+                                          config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
+                                          strategy=strategy_instance)
         else:
             index_client = index_parallel - 1
             dataset = dasha.dataset.load_dataset(cfg)
@@ -46,12 +47,8 @@ def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
 def run_parallel(cfg: DictConfig) -> None:
     sys.stderr = sys.stdout
     with Pool(processes=cfg.num_clients + 1) as pool:
-        pool.map(_parallel_run, [(cfg, index_parallel) for index_parallel in range(cfg.num_clients + 1)])
-    # with concurrent.futures.ProcessPoolExecutor() as executor:
-        # running_tasks = [executor.submit(_parallel_run, cfg, index_parallel=index_parallel)
-        #                  for index_parallel in range(cfg.num_clients + 1)]
-        # for running_task in running_tasks:
-        #     running_task.result()
+        results = pool.map(_parallel_run, [(cfg, index_parallel) for index_parallel in range(cfg.num_clients + 1)])
+    return results[0]
 
 
 @hydra.main(config_path="conf", config_name="base", version_base=None)

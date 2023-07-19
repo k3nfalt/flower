@@ -1,4 +1,6 @@
+import time
 from typing import Callable, Dict, List, Optional, Tuple, Union
+from logging import WARNING
 
 from flwr.common import (
     EvaluateIns,
@@ -16,14 +18,17 @@ from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
 from flwr.server.strategy.strategy import Strategy
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
+from flwr.common.logger import log
 
 
 class DashaStrategy(Strategy):
     _EMPTY_CONFIG = {}
-    def __init__(self, step_size):
+    _SKIPPED = 'skipped'
+    def __init__(self, step_size, num_clients):
         self._step_size = step_size
         self._parameters = None
         self._gradient_estimators = None
+        self._num_clients = num_clients
     
     def initialize_parameters(self, client_manager: ClientManager) -> Optional[Parameters]:
         return None
@@ -47,6 +52,10 @@ class DashaStrategy(Strategy):
         failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
         assert len(failures) == 0, failures
+        if len(results) != self._num_clients:
+            log(WARNING, "Warning: not all clients have sent results. Waiting and repeating...")
+            time.sleep(1.0)
+            return ndarrays_to_parameters(self._parameters), {}
         parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
         aggregated_vectors = aggregate(parsed_results)
         gradient_estimators = aggregated_vectors

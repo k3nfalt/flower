@@ -1,5 +1,6 @@
 import os
 import unittest
+import multiprocessing
 
 import torch
 import torch.nn as nn
@@ -12,22 +13,49 @@ from omegaconf import OmegaConf
 from dasha.dataset import LIBSVMDatasetName
 from dasha.dataset_preparation import DatasetType
 from dasha.main import run_parallel
+from dasha.tests.test_clients import DummyNet
+from dasha.dataset import load_test_dataset
 
 
 TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets')
 
 
+def gradient_descent(step_size, num_rounds):
+    dummy_net = DummyNet()
+    dataset = load_test_dataset(
+        OmegaConf.create({
+            "dataset": {
+                "type": DatasetType.TEST.value,
+            }}))
+    features, labels = dataset[:]
+    results = []
+    for _ in range(num_rounds):
+        dummy_net.zero_grad()
+        loss = dummy_net(features, labels)
+        loss.backward()
+        dummy_net._weight.data.sub_(step_size * dummy_net._weight.grad)
+        results.append(float(dummy_net(features, labels).detach().numpy()))
+    return results
+
+
 class TestDashaBaseline(unittest.TestCase):
     def testBaseline(self) -> None:
+        multiprocessing.set_start_method("spawn")
+        torch.multiprocessing.set_sharing_strategy('file_system')
+        
+        step_size = 0.1
+        num_rounds = 10
+        reference_results = gradient_descent(step_size, num_rounds)
+        
         cfg = OmegaConf.create({
             "dataset": {
                 "type": DatasetType.TEST.value,
             },
             "num_clients": 2,
-            "num_rounds": 10,
+            "num_rounds": num_rounds,
             "strategy": {
                 "_target_": "dasha.strategy.DashaStrategy",
-                "step_size": 0.1
+                "step_size": step_size
             },
             "model": {
                 "_target_": "dasha.tests.test_clients.DummyNet",
@@ -37,7 +65,10 @@ class TestDashaBaseline(unittest.TestCase):
                 "device": "cpu"
             }
         })
-        run_parallel(cfg)
+        results = run_parallel(cfg)
+        results = [loss for (_, loss) in results.losses_distributed]
+        # TODO: Maybe fix it. I don't know in advance in which round Flower will start training, so I check different subarrays for equality.
+        self.assertTrue(np.any([np.allclose(reference_results[:len(results)-i], results[i:]) for i in range(2)]))
 
 
 if __name__ == "__main__":
