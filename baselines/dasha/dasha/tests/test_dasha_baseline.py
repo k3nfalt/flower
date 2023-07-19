@@ -67,7 +67,7 @@ class TestDashaBaseline(unittest.TestCase):
         })
         results = run_parallel(cfg)
         results = [loss for (_, loss) in results.losses_distributed]
-        # TODO: Maybe fix it. I don't know in advance in which round Flower will start training, so I check different subarrays for equality.
+        # TODO: Maybe fix it. I don't know in which round Flower will start training in advance, so I check different subarrays for equality.
         self.assertTrue(np.any([np.allclose(reference_results[:len(results)-i], results[i:]) for i in range(2)]))
 
 
