@@ -14,7 +14,7 @@ class LIBSVMDatasetName(Enum):
     MUSHROOMS = 'mushrooms'
 
 
-def load_dataset(cfg: DictConfig) -> Dataset:
+def load_libsvm_dataset(cfg: DictConfig) -> Dataset:
     assert cfg.dataset.type == DatasetType.LIBSVM.value
     path_to_dataset = cfg.dataset.path_to_dataset
     dataset_name = cfg.dataset.dataset_name
@@ -28,6 +28,23 @@ def load_dataset(cfg: DictConfig) -> Dataset:
         raise RuntimeError("Wrong dataset")
     dataset = data_utils.TensorDataset(torch.Tensor(data), torch.Tensor(labels))
     return dataset
+
+
+def load_test_dataset(cfg: DictConfig) -> Dataset:
+    assert cfg.dataset.type == DatasetType.TEST.value
+    features = [[1], [2]]
+    targets = [[1], [2]]
+    dataset = data_utils.TensorDataset(torch.Tensor(features), torch.Tensor(targets))
+    return dataset
+
+
+def load_dataset(cfg: DictConfig) -> Dataset:
+    if cfg.dataset.type == DatasetType.LIBSVM.value:
+        return load_libsvm_dataset(cfg)
+    elif cfg.dataset.type == DatasetType.TEST.value:
+        return load_test_dataset(cfg)
+    else:
+        raise RuntimeError("Wrong dataset type")
 
 
 def random_split(dataset, num_clients, seed=42):

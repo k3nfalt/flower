@@ -32,13 +32,13 @@ class DashaStrategy(Strategy):
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
         fit_ins = FitIns(parameters, self._EMPTY_CONFIG)
-        return [(client, fit_ins) for client in client_manager.all()]
+        return [(client, fit_ins) for client in client_manager.all().values()]
 
     def configure_evaluate(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, EvaluateIns]]:
         evel_ins = EvaluateIns(parameters, self._EMPTY_CONFIG)
-        return [(client, evel_ins) for client in client_manager.all()]
+        return [(client, evel_ins) for client in client_manager.all().values()]
 
     def aggregate_fit(
         self,
@@ -46,15 +46,22 @@ class DashaStrategy(Strategy):
         results: List[Tuple[ClientProxy, FitRes]],
         failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
-        
-        for parameter, gradient_estimator in zip(self._parameters, self._gradient_estimators):
-            parameter -= self._step_size * gradient_estimator
-        assert len(failures) == 0
+        assert len(failures) == 0, failures
         parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
-        aggregated_vectors = ndarrays_to_parameters(aggregate(parsed_results))
-        for aggregated_vector, gradient_estimator in zip(aggregated_vectors, self._gradient_estimators):
-            gradient_estimator += aggregated_vector
-        return self._parameters, {}
+        aggregated_vectors = aggregate(parsed_results)
+        gradient_estimators = aggregated_vectors
+        for parameter, gradient_estimator in zip(self._parameters, gradient_estimators):
+            parameter -= self._step_size * gradient_estimator
+        return ndarrays_to_parameters(self._parameters), {}
+        
+        # for parameter, gradient_estimator in zip(self._parameters, self._gradient_estimators):
+        #     parameter -= self._step_size * gradient_estimator
+        # assert len(failures) == 0
+        # parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
+        # aggregated_vectors = aggregate(parsed_results)
+        # for aggregated_vector, gradient_estimator in zip(aggregated_vectors, self._gradient_estimators):
+        #     gradient_estimator += aggregated_vector
+        # return ndarrays_to_parameters(self._parameters), {}
 
     def aggregate_evaluate(
         self,

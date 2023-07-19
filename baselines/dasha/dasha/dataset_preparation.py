@@ -18,6 +18,7 @@ from omegaconf import DictConfig, OmegaConf
 
 class DatasetType(Enum):
     LIBSVM = 'libsvm'
+    TEST = 'test'
     
     
 class DatasetSplit(Enum):

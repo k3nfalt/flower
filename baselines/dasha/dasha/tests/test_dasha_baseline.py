@@ -21,20 +21,16 @@ class TestDashaBaseline(unittest.TestCase):
     def testBaseline(self) -> None:
         cfg = OmegaConf.create({
             "dataset": {
-                "type": DatasetType.LIBSVM.value,
-                "path_to_dataset": TESTDATA_PATH,
-                "dataset_name": LIBSVMDatasetName.MUSHROOMS.value
+                "type": DatasetType.TEST.value,
             },
-            "num_clients": 4,
+            "num_clients": 2,
             "num_rounds": 10,
             "strategy": {
                 "_target_": "dasha.strategy.DashaStrategy",
-                "step_size": 0.01
+                "step_size": 0.1
             },
             "model": {
-                "_target_": "dasha.models.LinearNetWithNonConvexLoss",
-                "num_input_features": 112,
-                "num_output_features": 2
+                "_target_": "dasha.tests.test_clients.DummyNet",
             },
             "client": {
                 "_target_": "dasha.client.DashaClient",
