@@ -26,11 +26,11 @@ def load_dataset(cfg: DictConfig) -> Dataset:
         labels = labels.astype(np.int64) - 1
     else:
         raise RuntimeError("Wrong dataset")
-    return data_utils.TensorDataset(torch.Tensor(data), torch.Tensor(labels))
+    dataset = data_utils.TensorDataset(torch.Tensor(data), torch.Tensor(labels))
+    return dataset
 
 
 def random_split(dataset, num_clients, seed=42):
-    partition_size = int(len(dataset) / num_clients)
-    lengths = [partition_size] * num_clients
-    datasets = random_split(dataset, lengths, torch.Generator().manual_seed(seed=seed))
+    lengths = [1 / num_clients] * num_clients
+    datasets = torch.utils.data.random_split(dataset, lengths, torch.Generator().manual_seed(seed))
     return datasets

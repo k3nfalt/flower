@@ -2,10 +2,9 @@ import concurrent.futures
 
 import hydra
 from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 import torch
-from torch.utils.data import random_split
 
 import flwr as fl
 
