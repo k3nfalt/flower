@@ -1,10 +1,5 @@
-"""Create and connect the building blocks for your experiments; start the simulation.
+import concurrent.futures
 
-It includes processioning the dataset, instantiate strategy, specify how the global
-model is going to be evaluated, etc. At the end, this script saves the results.
-"""
-# these are the basic packages you'll need here
-# feel free to remove some if aren't needed
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
@@ -15,7 +10,7 @@ from torch.utils.data import random_split
 import flwr as fl
 
 import dasha
-from dataset_preparation import find_pre_downloaded_or_download_dataset
+from dasha.dataset_preparation import find_pre_downloaded_or_download_dataset
 
 
 LOCAL_ADDRESS = "0.0.0.0:8080"
@@ -32,15 +27,26 @@ def _parallel_run(cfg: DictConfig, index_parallel: int) -> None:
         dataset = dasha.dataset.load_dataset(cfg)
         datasets = dasha.dataset.random_split(dataset, cfg.num_clients)
         local_dataset = datasets[index_client]
-        client_instance = instantiate(cfg.client)
+        function = instantiate(cfg.model)
+        client_instance = instantiate(cfg.client, 
+                                      function=function,
+                                      dataset=local_dataset)
         fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
                                      client=client_instance)
 
 
+def run_parallel(cfg: DictConfig) -> None:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=cfg.num_clients + 1) as executor:
+        running_tasks = [executor.submit(_parallel_run, cfg, index_parallel=index_parallel)
+                         for index_parallel in range(cfg.num_clients + 1)]
+        for running_task in running_tasks:
+            running_task.result()
+
 
 @hydra.main(config_path="conf", config_name="base", version_base=None)
 def main(cfg: DictConfig) -> None:
-    dasha.dataset_preparation.find_pre_downloaded_or_download_dataset(cfg)
+    find_pre_downloaded_or_download_dataset(cfg)
+    run_parallel(cfg)
     
     # dataloaders = load_dataset(cfg)
     
@@ -56,14 +62,14 @@ def main(cfg: DictConfig) -> None:
     # Define a function that returns another function that will be used during
     # simulation to instantiate each individual client
     # client_fn = client.<my_function_that_returns_a_function>()
-    client_fn = client.gen_client_fn(
-        model=cfg.model,
-    )
+    # client_fn = client.gen_client_fn(
+    #     model=cfg.model,
+    # )
 
     # 4. Define your strategy
     # pass all relevant argument (including the global dataset used after aggregation,
     # if needed by your method.)
-    strategy_instance = instantiate(cfg.strategy)
+    # strategy_instance = instantiate(cfg.strategy)
 
     # 5. Start Simulation
     # history = fl.simulation.start_simulation(
