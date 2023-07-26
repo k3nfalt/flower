@@ -16,7 +16,7 @@ from logging import DEBUG
 from dasha.compressors import UnbiasedBaseCompressor, IdentityUnbiasedCompressor, decompress
 
 
-class DashaClient(fl.client.NumPyClient):
+class CompressionClient(fl.client.NumPyClient):
     _SEND_FULL_GRADIENT = 'send_full_gradient'
     def __init__(
         self,
@@ -55,16 +55,9 @@ class DashaClient(fl.client.NumPyClient):
         function_value.backward()
         gradients = np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
         if config[self._SEND_FULL_GRADIENT]:
-            assert self._gradient_estimator is None
-            self._gradient_estimator = gradients
-            self._local_gradient_estimator = gradients
-            compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
+            compressed_gradient = self._gradient_step(gradients)
         else:
-            momentum = self._get_momentum(len(gradients))
-            compressed_gradient = self._compressor.compress(
-                gradients - self._local_gradient_estimator - momentum * (self._gradient_estimator - self._local_gradient_estimator))
-            self._local_gradient_estimator = gradients
-            self._gradient_estimator += decompress(compressed_gradient)
+            compressed_gradient = self._compression_step(gradients)
         return compressed_gradient, len(self._targets), {}
     
     def _get_momentum(self, dim):
@@ -84,3 +77,40 @@ class DashaClient(fl.client.NumPyClient):
         self._features, self._targets = dataset[:]
         self._features = self._features.to(device)
         self._targets = self._targets.to(device)
+        
+    def _gradient_step(self, gradients):
+        raise NotImplementedError()
+    
+    def _compression_step(self, gradients):
+        raise NotImplementedError()
+
+
+class DashaClient(CompressionClient):
+    def _gradient_step(self, gradients):
+        assert self._gradient_estimator is None
+        self._gradient_estimator = gradients
+        self._local_gradient_estimator = gradients
+        compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
+        return compressed_gradient
+    
+    def _compression_step(self, gradients):
+        momentum = self._get_momentum(len(gradients))
+        compressed_gradient = self._compressor.compress(
+            gradients - self._local_gradient_estimator - momentum * (self._gradient_estimator - self._local_gradient_estimator))
+        self._local_gradient_estimator = gradients
+        self._gradient_estimator += decompress(compressed_gradient)
+        return compressed_gradient
+
+
+class MarinaClient(CompressionClient):
+    def _gradient_step(self, gradients):
+        assert self._gradient_estimator is None
+        self._local_gradient_estimator = gradients
+        compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
+        return compressed_gradient
+    
+    def _compression_step(self, gradients):
+        assert self._gradient_estimator is None
+        compressed_gradient = self._compressor.compress(gradients - self._local_gradient_estimator)
+        self._local_gradient_estimator = gradients
+        return compressed_gradient

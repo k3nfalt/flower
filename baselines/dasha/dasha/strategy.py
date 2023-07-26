@@ -2,6 +2,8 @@ import time
 from typing import Callable, Dict, List, Optional, Tuple, Union
 from logging import WARNING
 
+import numpy as np
+
 from flwr.common import (
     EvaluateIns,
     EvaluateRes,
@@ -21,7 +23,7 @@ from flwr.server.client_proxy import ClientProxy
 from flwr.common.logger import log
 
 from dasha.compressors import decompress, IdentityUnbiasedCompressor
-from dasha.client import DashaClient
+from dasha.client import DashaClient, MarinaClient
 
 
 class CompressionAggregator(Strategy):
@@ -35,12 +37,11 @@ class CompressionAggregator(Strategy):
     
     def initialize_parameters(self, client_manager: ClientManager) -> Optional[Parameters]:
         return None
-
+    
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
-        fit_ins = FitIns(parameters, {DashaClient._SEND_FULL_GRADIENT: self._gradient_estimator is None})
-        return [(client, fit_ins) for client in client_manager.all().values()]
+        raise NotImplementedError()
 
     def configure_evaluate(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
@@ -90,3 +91,38 @@ class CompressionAggregator(Strategy):
             assert len(parameters) == 1
             self._parameters = parameters[0]
         return None
+
+
+class DashaAggregator(CompressionAggregator):
+    def configure_fit(
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    ) -> List[Tuple[ClientProxy, FitIns]]:
+        fit_ins = FitIns(parameters, {DashaClient._SEND_FULL_GRADIENT: self._gradient_estimator is None})
+        return [(client, fit_ins) for client in client_manager.all().values()]
+
+
+class MarinaAggregator(CompressionAggregator):
+    def __init__(self, *args, seed=None, size_of_compressed_vectors=None, **kwargs):
+        super(MarinaAggregator, self).__init__(*args, **kwargs)
+        self._generator = np.random.default_rng(seed)
+        assert size_of_compressed_vectors is not None
+        self._size_of_compressed_vectors = size_of_compressed_vectors
+        self._prob = None
+    
+    def configure_fit(
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    ) -> List[Tuple[ClientProxy, FitIns]]:
+        prob = self._get_prob()
+        self._gradient_estimator = None if self._bernoulli_sample(self._generator, prob) else self._gradient_estimator
+        fit_ins = FitIns(parameters, {MarinaClient._SEND_FULL_GRADIENT: self._gradient_estimator is None})
+        return [(client, fit_ins) for client in client_manager.all().values()]
+    
+    def _get_prob(self):
+        if self._prob is not None:
+            return self._prob
+        self._prob = self._size_of_compressed_vectors / len(self._parameters)
+    
+    def _bernoulli_sample(self, random_generator, prob):
+        if prob == 0.0:
+            return False
+        return random_generator.random() < prob
