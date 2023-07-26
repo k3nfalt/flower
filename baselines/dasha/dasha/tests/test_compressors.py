@@ -20,7 +20,7 @@ class TestUnbiasedBaseCompressor(unittest.TestCase):
         seed = 42
         number_of_coordinates = 5
         dim = 19
-        compressor = RandKCompressor(number_of_coordinates, seed)
+        compressor = RandKCompressor(seed, number_of_coordinates, dim)
         vector = np.random.randn(dim).astype(np.float32)
         number_of_samples = 100000
         expected_vector = 0
