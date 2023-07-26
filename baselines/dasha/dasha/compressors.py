@@ -46,3 +46,26 @@ class IdentityUnbiasedCompressor(UnbiasedBaseCompressor):
     
     def num_nonzero_components(self):
         return self._dim
+
+
+class RandKCompressor(UnbiasedBaseCompressor):
+    def __init__(self, number_of_coordinates, seed, dim=None):
+        self._number_of_coordinates = number_of_coordinates
+        self._dim = dim
+        self._generator = np.random.default_rng(seed)
+    
+    def num_nonzero_components(self):
+        return self._number_of_coordinates
+
+    def compress_impl(self, vector):
+        dim = vector.shape[0]
+        assert self._dim is None or self._dim == dim
+        self._dim = dim
+        assert self._number_of_coordinates >= 0
+        indices = self._generator.choice(dim, self._number_of_coordinates, replace = False)
+        values = vector[indices] * float(dim / self._number_of_coordinates)
+        return [np.array(dim, dtype=np.int32), indices, values]
+    
+    def omega(self):
+        assert self._dim is not None
+        return float(self._dim) / self._number_of_coordinates - 1
