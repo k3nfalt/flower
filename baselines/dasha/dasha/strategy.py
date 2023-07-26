@@ -59,8 +59,10 @@ class DashaStrategy(Strategy):
             time.sleep(1.0)
             return ndarrays_to_parameters([self._parameters]), {}
         parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
-        parsed_results = [(decompress(*compressed_params), weight) for compressed_params, weight in parsed_results]
+        parsed_results = [(decompress(compressed_params), weight) for compressed_params, weight in parsed_results]
         aggregated_vectors = aggregate(parsed_results)
+        if self._gradient_estimators is None:
+            return ndarrays_to_parameters([self._parameters]), {}
         assert len(aggregated_vectors) == 1
         aggregated_vector = aggregated_vectors[0]
         gradient_estimator = aggregated_vector
