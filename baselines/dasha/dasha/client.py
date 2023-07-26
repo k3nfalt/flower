@@ -45,8 +45,8 @@ class DashaClient(fl.client.NumPyClient):
         self._function.zero_grad()
         function_value = self._function(self._features, self._targets)
         function_value.backward()
-        gradients = [val.grad.cpu().numpy() for val in self._function.parameters()]
-        return gradients, len(self._targets), {}
+        gradients = np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
+        return [gradients], len(self._targets), {}
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
