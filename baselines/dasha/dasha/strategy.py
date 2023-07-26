@@ -57,14 +57,15 @@ class DashaStrategy(Strategy):
         if len(results) != self._num_clients:
             log(WARNING, "Warning: not all clients have sent results. Waiting and repeating...")
             time.sleep(1.0)
-            return ndarrays_to_parameters(self._parameters), {}
+            return ndarrays_to_parameters([self._parameters]), {}
         parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
         parsed_results = [(decompress(*compressed_params), weight) for compressed_params, weight in parsed_results]
         aggregated_vectors = aggregate(parsed_results)
-        gradient_estimators = aggregated_vectors
-        for parameter, gradient_estimator in zip(self._parameters, gradient_estimators):
-            parameter -= self._step_size * gradient_estimator
-        return ndarrays_to_parameters(self._parameters), {}
+        assert len(aggregated_vectors) == 1
+        aggregated_vector = aggregated_vectors[0]
+        gradient_estimator = aggregated_vector
+        self._parameters -= self._step_size * gradient_estimator
+        return ndarrays_to_parameters([self._parameters]), {}
         
         # for parameter, gradient_estimator in zip(self._parameters, self._gradient_estimators):
         #     parameter -= self._step_size * gradient_estimator
@@ -89,5 +90,7 @@ class DashaStrategy(Strategy):
         self, server_round: int, parameters: Parameters
     ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
         if server_round == 0:
-            self._parameters = parameters_to_ndarrays(parameters)
+            parameters = parameters_to_ndarrays(parameters)
+            assert len(parameters) == 1
+            self._parameters = parameters[0]
         return None
