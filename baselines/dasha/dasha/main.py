@@ -18,7 +18,7 @@ import dasha.dataset
 from dasha.dataset_preparation import find_pre_downloaded_or_download_dataset
 
 
-LOCAL_ADDRESS = "0.0.0.0:8080"
+LOCAL_ADDRESS = "localhost:8080"
 
 
 def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
@@ -38,8 +38,10 @@ def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
             client_instance = instantiate(cfg.client, 
                                         function=function,
                                         dataset=local_dataset)
+            # TODO: Fix it
+            time.sleep(1.0)
             fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
-                                        client=client_instance)
+                                         client=client_instance)
     except Exception as ex:
         print(traceback.format_exc())
 
