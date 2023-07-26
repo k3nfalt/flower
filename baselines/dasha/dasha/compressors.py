@@ -11,8 +11,9 @@ def decompress(compressed_vector, assert_compressor=None):
 
 
 class BaseCompressor(object):
-    def __init__(self, seed) -> None:
+    def __init__(self, seed, dim) -> None:
         self._seed = seed
+        self._dim = dim
     
     def compress(self, vector):
         compressed_vector = self.compress_impl(vector)
@@ -23,6 +24,9 @@ class BaseCompressor(object):
     @classmethod
     def name(cls):
         return cls.__class__.__name__
+    
+    def set_dim(self, dim):
+        self._dim = dim
 
     def compress_impl(self, vector):
         raise NotImplementedError()
@@ -38,8 +42,7 @@ class UnbiasedBaseCompressor(BaseCompressor):
 
 class IdentityUnbiasedCompressor(UnbiasedBaseCompressor):
     def __init__(self, seed=None, dim=None):
-        super(IdentityUnbiasedCompressor, self).__init__(seed=seed)
-        self._dim = dim
+        super(IdentityUnbiasedCompressor, self).__init__(seed=seed, dim=dim)
     
     def compress_impl(self, vector):
         dim = vector.shape[0]
@@ -55,9 +58,8 @@ class IdentityUnbiasedCompressor(UnbiasedBaseCompressor):
 
 class RandKCompressor(UnbiasedBaseCompressor):
     def __init__(self, seed, number_of_coordinates, dim=None):
-        super(RandKCompressor, self).__init__(seed=seed)
+        super(RandKCompressor, self).__init__(seed=seed, dim=dim)
         self._number_of_coordinates = number_of_coordinates
-        self._dim = dim
         self._generator = np.random.default_rng(seed)
     
     def num_nonzero_components(self):
@@ -75,6 +77,3 @@ class RandKCompressor(UnbiasedBaseCompressor):
     def omega(self):
         assert self._dim is not None
         return float(self._dim) / self._number_of_coordinates - 1
-    
-    def set_dim(self, dim):
-        self._dim = dim
