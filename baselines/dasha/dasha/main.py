@@ -14,7 +14,7 @@ import torch
 
 import flwr as fl
 
-import dasha
+import dasha.dataset
 from dasha.dataset_preparation import find_pre_downloaded_or_download_dataset
 
 

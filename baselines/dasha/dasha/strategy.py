@@ -55,7 +55,7 @@ class DashaStrategy(Strategy):
     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
         assert len(failures) == 0, failures
         if len(results) != self._num_clients:
-            log(WARNING, "Warning: not all clients have sent results. Waiting and repeating...")
+            log(WARNING, "not all clients have sent results. Waiting and repeating...")
             time.sleep(1.0)
             return ndarrays_to_parameters([self._parameters]), {}
         parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]

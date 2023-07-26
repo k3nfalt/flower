@@ -6,6 +6,7 @@ import torch.utils.data as data_utils
 import numpy as np
 
 from dasha.client import DashaClient
+from dasha.compressors import decompress
 
 
 _CPU_DEVICE = "cpu"
@@ -56,7 +57,7 @@ class TestDashaClient(unittest.TestCase):
         parameters_list = [np.array([parameter])]
         gradients, num_samples, _ = self._client.fit(parameters_list, config={})
         self.assertEqual(num_samples, 2)
-        self.assertEqual(len(gradients), 1)
+        gradients = decompress(gradients)
         gradient_actual = sum([self._features[i][0] * (parameter * self._features[i][0] - self._targets[i][0])
                            for i in range(len(self._targets))]) / len(self._targets)
         self.assertAlmostEqual(float(gradients[0]), gradient_actual)
