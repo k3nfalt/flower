@@ -51,7 +51,7 @@ class TestDashaBaseline(unittest.TestCase):
             "num_clients": 2,
             "num_rounds": num_rounds,
             "strategy": {
-                "_target_": "dasha.strategy.DashaStrategy",
+                "_target_": "dasha.strategy.CompressionAggregator",
                 "step_size": step_size
             },
             "compressor": {
@@ -83,7 +83,7 @@ class TestDashaBaselineWithRandK(unittest.TestCase):
             "num_clients": 2,
             "num_rounds": num_rounds,
             "strategy": {
-                "_target_": "dasha.strategy.DashaStrategy",
+                "_target_": "dasha.strategy.CompressionAggregator",
                 "step_size": step_size
             },
             "model": {

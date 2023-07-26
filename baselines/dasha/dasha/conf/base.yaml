@@ -9,7 +9,7 @@ model:
   # model config
 
 strategy:
-  _target_: dasha.strategy.DashaStrategy
+  _target_: dasha.strategy.CompressionAggregator
   step_size: 0.01
 
 client:

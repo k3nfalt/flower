@@ -24,7 +24,7 @@ from dasha.compressors import decompress
 from dasha.client import DashaClient
 
 
-class DashaStrategy(Strategy):
+class CompressionAggregator(Strategy):
     _EMPTY_CONFIG = {}
     _SKIPPED = 'skipped'
     def __init__(self, step_size, num_clients):
