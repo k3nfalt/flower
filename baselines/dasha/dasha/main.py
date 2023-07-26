@@ -10,7 +10,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-import torch
+import numpy as np
 
 import flwr as fl
 
@@ -21,9 +21,13 @@ from dasha.dataset_preparation import find_pre_downloaded_or_download_dataset
 LOCAL_ADDRESS = "localhost:8080"
 
 
-def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
+def _generate_seed(generator):
+    return generator.integers(10e9)
+
+
+def _parallel_run(params: Tuple[DictConfig, int, int]) -> None:
     try:
-        cfg, index_parallel = cfg_and_index_parallel
+        cfg, index_parallel, seed = params
         if index_parallel == 0:
             strategy_instance = instantiate(cfg.strategy, num_clients=cfg.num_clients)
             return fl.server.start_server(server_address=LOCAL_ADDRESS, 
@@ -35,9 +39,11 @@ def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
             datasets = dasha.dataset.random_split(dataset, cfg.num_clients)
             local_dataset = datasets[index_client]
             function = instantiate(cfg.model)
+            compressor = instantiate(cfg.compressor, seed=seed)
             client_instance = instantiate(cfg.client, 
-                                        function=function,
-                                        dataset=local_dataset)
+                                          function=function,
+                                          dataset=local_dataset,
+                                          compressor=compressor)
             # TODO: Fix it
             time.sleep(1.0)
             fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
@@ -48,8 +54,10 @@ def _parallel_run(cfg_and_index_parallel: Tuple[DictConfig, int]) -> None:
 
 def run_parallel(cfg: DictConfig) -> None:
     sys.stderr = sys.stdout
+    generator = np.random.default_rng(seed=42)
     with Pool(processes=cfg.num_clients + 1) as pool:
-        results = pool.map(_parallel_run, [(cfg, index_parallel) for index_parallel in range(cfg.num_clients + 1)])
+        seed = _generate_seed(generator)
+        results = pool.map(_parallel_run, [(cfg, index_parallel, seed) for index_parallel in range(cfg.num_clients + 1)])
     return results[0]
 
 

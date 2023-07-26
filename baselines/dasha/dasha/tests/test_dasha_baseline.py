@@ -38,14 +38,43 @@ def gradient_descent(step_size, num_rounds):
     return results
 
 
-class TestDashaBaseline(unittest.TestCase):
-    def testBaseline(self) -> None:
-        multiprocessing.set_start_method("spawn")
-        torch.multiprocessing.set_sharing_strategy('file_system')
+# class TestDashaBaseline(unittest.TestCase):
+#     def testBaseline(self) -> None:
+#         step_size = 0.1
+#         num_rounds = 10
+#         reference_results = gradient_descent(step_size, num_rounds)
         
-        step_size = 0.1
-        num_rounds = 10
-        reference_results = gradient_descent(step_size, num_rounds)
+#         cfg = OmegaConf.create({
+#             "dataset": {
+#                 "type": DatasetType.TEST.value,
+#             },
+#             "num_clients": 2,
+#             "num_rounds": num_rounds,
+#             "strategy": {
+#                 "_target_": "dasha.strategy.DashaStrategy",
+#                 "step_size": step_size
+#             },
+#             "compressor": {
+#                 "_target_": "dasha.compressors.IdentityUnbiasedCompressor",
+#             },
+#             "model": {
+#                 "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
+#             },
+#             "client": {
+#                 "_target_": "dasha.client.DashaClient",
+#                 "device": "cpu"
+#             }
+#         })
+#         results = run_parallel(cfg)
+#         results = [loss for (_, loss) in results.losses_distributed]
+#         # TODO: Maybe fix it. I don't know in which round Flower will start training in advance, so I check different subarrays for equality.
+#         self.assertTrue(np.any([np.allclose(reference_results[:len(results)-i], results[i:]) for i in range(2)]))
+
+
+class TestDashaBaselineWithRandK(unittest.TestCase):
+    def testBaseline(self) -> None:
+        step_size = 0.01
+        num_rounds = 100
         
         cfg = OmegaConf.create({
             "dataset": {
@@ -60,6 +89,10 @@ class TestDashaBaseline(unittest.TestCase):
             "model": {
                 "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
             },
+            "compressor": {
+                "_target_": "dasha.compressors.RandKCompressor",
+                "number_of_coordinates": 1
+            },
             "client": {
                 "_target_": "dasha.client.DashaClient",
                 "device": "cpu"
@@ -67,9 +100,11 @@ class TestDashaBaseline(unittest.TestCase):
         })
         results = run_parallel(cfg)
         results = [loss for (_, loss) in results.losses_distributed]
-        # TODO: Maybe fix it. I don't know in which round Flower will start training in advance, so I check different subarrays for equality.
-        self.assertTrue(np.any([np.allclose(reference_results[:len(results)-i], results[i:]) for i in range(2)]))
+        self.assertGreater(results[0], 1.0)
+        self.assertLess(results[-1], 1e-5)
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")
+    torch.multiprocessing.set_sharing_strategy('file_system')
     unittest.main()

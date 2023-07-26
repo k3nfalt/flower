@@ -29,7 +29,7 @@ class DashaClient(fl.client.NumPyClient):
         self._compressor = compressor
         self._local_gradient_estimator = None
         self._gradient_estimator = None
-        self._momentum = 1 / (1 + 2 * compressor.omega())
+        self._momentum = None
         self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
@@ -60,11 +60,19 @@ class DashaClient(fl.client.NumPyClient):
             self._local_gradient_estimator = gradients
             compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
         else:
+            momentum = self._get_momentum(len(gradients))
             compressed_gradient = self._compressor.compress(
-                gradients - self._local_gradient_estimator - self._momentum * (self._gradient_estimator - self._local_gradient_estimator))
+                gradients - self._local_gradient_estimator - momentum * (self._gradient_estimator - self._local_gradient_estimator))
             self._local_gradient_estimator = gradients
-            self._gradient_estimator += decompress(compressed_gradient) 
+            self._gradient_estimator += decompress(compressed_gradient)
         return compressed_gradient, len(self._targets), {}
+    
+    def _get_momentum(self, dim):
+        if self._momentum is not None:
+            return self._momentum
+        self._compressor.set_dim(dim)
+        self._momentum = 1 / (1 + 2 * self._compressor.omega())
+        return self._momentum
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
