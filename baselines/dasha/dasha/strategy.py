@@ -59,11 +59,9 @@ class DashaStrategy(Strategy):
             log(WARNING, "not all clients have sent results. Waiting and repeating...")
             time.sleep(1.0)
             return ndarrays_to_parameters([self._parameters]), {}
-        parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
-        parsed_results = [(decompress(compressed_params), weight) for compressed_params, weight in parsed_results]
-        aggregated_vectors = aggregate(parsed_results)
-        assert len(aggregated_vectors) == 1
-        aggregated_vector = aggregated_vectors[0]
+        parsed_results = [parameters_to_ndarrays(fit_res.parameters) for _, fit_res in results]
+        parsed_results = [decompress(compressed_params) for compressed_params in parsed_results]
+        aggregated_vector = sum(parsed_results) / len(parsed_results)
         if self._gradient_estimator is None:
             self._gradient_estimator = aggregated_vector
             self._parameters -= self._step_size * self._gradient_estimator

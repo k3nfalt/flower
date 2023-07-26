@@ -10,10 +10,9 @@ import numpy as np
 from omegaconf import OmegaConf
 
 
-from dasha.dataset import LIBSVMDatasetName
 from dasha.dataset_preparation import DatasetType
 from dasha.main import run_parallel
-from dasha.tests.test_clients import DummyNet
+from dasha.tests.test_clients import DummyNetTwoParameters
 from dasha.dataset import load_test_dataset
 
 
@@ -21,7 +20,7 @@ TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datase
 
 
 def gradient_descent(step_size, num_rounds):
-    dummy_net = DummyNet()
+    dummy_net = DummyNetTwoParameters()
     dataset = load_test_dataset(
         OmegaConf.create({
             "dataset": {
@@ -33,7 +32,8 @@ def gradient_descent(step_size, num_rounds):
         dummy_net.zero_grad()
         loss = dummy_net(features, labels)
         loss.backward()
-        dummy_net._weight.data.sub_(step_size * dummy_net._weight.grad)
+        for weight in dummy_net.parameters():
+            weight.data.sub_(step_size * weight.grad)
         results.append(float(dummy_net(features, labels).detach().numpy()))
     return results
 
@@ -58,7 +58,7 @@ class TestDashaBaseline(unittest.TestCase):
                 "step_size": step_size
             },
             "model": {
-                "_target_": "dasha.tests.test_clients.DummyNet",
+                "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
             },
             "client": {
                 "_target_": "dasha.client.DashaClient",
