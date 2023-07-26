@@ -13,15 +13,19 @@ import flwr as fl
 from flwr.common.typing import NDArrays, Scalar
 from logging import DEBUG
 
+from dasha.compressors import UnbiasedBaseCompressor, IdentityUnbiasedCompressor
+
 
 class DashaClient(fl.client.NumPyClient):  
     def __init__(
         self,
         function: torch.nn.Module,
         dataset: Dataset,
-        device: torch.device
+        device: torch.device,
+        compressor: UnbiasedBaseCompressor = IdentityUnbiasedCompressor()
     ):
         self._function = function
+        self._compressor = compressor
         self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
@@ -46,7 +50,7 @@ class DashaClient(fl.client.NumPyClient):
         function_value = self._function(self._features, self._targets)
         function_value.backward()
         gradients = np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
-        return [gradients], len(self._targets), {}
+        return self._compressor.compress(gradients), len(self._targets), {}
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:

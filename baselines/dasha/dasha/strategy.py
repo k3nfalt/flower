@@ -20,6 +20,8 @@ from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from flwr.common.logger import log
 
+from dasha.compressors import decompress
+
 
 class DashaStrategy(Strategy):
     _EMPTY_CONFIG = {}
@@ -57,6 +59,7 @@ class DashaStrategy(Strategy):
             time.sleep(1.0)
             return ndarrays_to_parameters(self._parameters), {}
         parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
+        parsed_results = [(decompress(*compressed_params), weight) for compressed_params, weight in parsed_results]
         aggregated_vectors = aggregate(parsed_results)
         gradient_estimators = aggregated_vectors
         for parameter, gradient_estimator in zip(self._parameters, gradient_estimators):
