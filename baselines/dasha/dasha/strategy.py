@@ -121,6 +121,7 @@ class MarinaAggregator(CompressionAggregator):
         if self._prob is not None:
             return self._prob
         self._prob = self._size_of_compressed_vectors / len(self._parameters)
+        return self._prob
     
     def _bernoulli_sample(self, random_generator, prob):
         if prob == 0.0:

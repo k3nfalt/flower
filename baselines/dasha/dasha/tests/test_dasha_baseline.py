@@ -104,6 +104,41 @@ class TestDashaBaselineWithRandK(unittest.TestCase):
         self.assertLess(results[-1], 1e-5)
 
 
+class TestMarinaBaselineWithRandK(unittest.TestCase):
+    def testBaseline(self) -> None:
+        step_size = 0.01
+        num_rounds = 100
+        number_of_coordinates = 1
+        
+        cfg = OmegaConf.create({
+            "dataset": {
+                "type": DatasetType.TEST.value,
+            },
+            "num_clients": 2,
+            "num_rounds": num_rounds,
+            "strategy": {
+                "_target_": "dasha.strategy.MarinaAggregator",
+                "step_size": step_size,
+                "size_of_compressed_vectors": number_of_coordinates
+            },
+            "model": {
+                "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
+            },
+            "compressor": {
+                "_target_": "dasha.compressors.RandKCompressor",
+                "number_of_coordinates": number_of_coordinates
+            },
+            "client": {
+                "_target_": "dasha.client.MarinaClient",
+                "device": "cpu"
+            }
+        })
+        results = run_parallel(cfg)
+        results = [loss for (_, loss) in results.losses_distributed]
+        self.assertGreater(results[0], 1.0)
+        self.assertLess(results[-1], 1e-5)
+
+
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
     torch.multiprocessing.set_sharing_strategy('file_system')

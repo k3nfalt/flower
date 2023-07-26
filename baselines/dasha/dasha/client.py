@@ -106,7 +106,7 @@ class MarinaClient(CompressionClient):
     def _gradient_step(self, gradients):
         assert self._gradient_estimator is None
         self._local_gradient_estimator = gradients
-        compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
+        compressed_gradient = IdentityUnbiasedCompressor().compress(gradients)
         return compressed_gradient
     
     def _compression_step(self, gradients):
