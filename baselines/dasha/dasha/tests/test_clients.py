@@ -62,5 +62,40 @@ class TestDashaClient(unittest.TestCase):
         self.assertAlmostEqual(float(gradients[0]), gradient_actual)
 
 
+class DummyNetTwoParameters(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self._weight_one = nn.Parameter(torch.Tensor([1]))
+        self._weight_two = nn.Parameter(torch.Tensor([3]))
+
+    def forward(self, features: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        return 0.5 * torch.mean((self._weight_two.view(-1, 1) * self._weight_one.view(-1, 1) * features - targets)**2)
+
+
+class TestDashaClientWithTwoParameters(unittest.TestCase):
+    def setUp(self) -> None:
+        self._function = DummyNetTwoParameters()
+        self._features = [[1], [2]]
+        self._targets = [[1], [2]]
+        dataset = data_utils.TensorDataset(torch.Tensor(self._features), 
+                                           torch.Tensor(self._targets))
+        self._client = DashaClient(function=self._function, 
+                                   dataset=dataset,
+                                   device=_CPU_DEVICE)
+
+    def testGetParameters(self) -> None:
+        parameters = self._client.get_parameters(config={})
+        self.assertEqual(len(parameters), 1)
+        self.assertAlmostEqual(float(parameters[0][0]), 1)
+        self.assertAlmostEqual(float(parameters[0][1]), 3)
+    
+    def testSetParameters(self) -> None:
+        parameter = [3.0, 10.]
+        parameters = [np.array(parameter)]
+        self._client.set_parameters(parameters)
+        self.assertAlmostEqual(float(self._function._weight_one.detach().numpy()), parameter[0])
+        self.assertAlmostEqual(float(self._function._weight_two.detach().numpy()), parameter[1])
+
+
 if __name__ == "__main__":
     unittest.main()

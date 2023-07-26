@@ -4,6 +4,8 @@ from typing import Callable, Dict, List, Tuple, Optional
 from omegaconf import DictConfig
 from hydra.utils import instantiate
 
+import numpy as np
+
 import torch
 from torch.utils.data import Dataset
 
@@ -23,10 +25,19 @@ class DashaClient(fl.client.NumPyClient):
         self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
-        return [val.detach().cpu().numpy() for _, val in self._function.named_parameters()]
+        parameters = [val.detach().cpu().numpy().flatten() for _, val in self._function.named_parameters()]
+        return [np.concatenate(parameters)]
 
     def set_parameters(self, parameters: NDArrays) -> None:
-        state_dict = {k: torch.Tensor(parameter) for parameter, (k, _) in zip(parameters, self._function.named_parameters())}
+        assert len(parameters) == 1
+        parameters = parameters[0]
+        state_dict = {}
+        shift = 0
+        for k, parameter_layer in self._function.named_parameters():
+            numel = parameter_layer.numel()
+            parameter = parameters[shift:shift + numel].reshape(parameter_layer.shape)
+            state_dict[k] = torch.Tensor(parameter)
+            shift += numel
         self._function.load_state_dict(state_dict, strict=True)
 
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
