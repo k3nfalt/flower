@@ -20,7 +20,7 @@ from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from flwr.common.logger import log
 
-from dasha.compressors import decompress
+from dasha.compressors import decompress, IdentityUnbiasedCompressor
 from dasha.client import DashaClient
 
 
@@ -60,7 +60,9 @@ class CompressionAggregator(Strategy):
             time.sleep(1.0)
             return ndarrays_to_parameters([self._parameters]), {}
         parsed_results = [parameters_to_ndarrays(fit_res.parameters) for _, fit_res in results]
-        parsed_results = [decompress(compressed_params) for compressed_params in parsed_results]
+        expect_compressor = IdentityUnbiasedCompressor.name() if self._gradient_estimator is None else None
+        parsed_results = [decompress(compressed_params, assert_compressor=expect_compressor) 
+                          for compressed_params in parsed_results]
         aggregated_vector = sum(parsed_results) / len(parsed_results)
         if self._gradient_estimator is None:
             self._gradient_estimator = aggregated_vector

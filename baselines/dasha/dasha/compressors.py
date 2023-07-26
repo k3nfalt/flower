@@ -23,7 +23,7 @@ class BaseCompressor(object):
     
     @classmethod
     def name(cls):
-        return cls.__class__.__name__
+        return cls.__name__
     
     def set_dim(self, dim):
         self._dim = dim
