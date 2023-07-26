@@ -21,6 +21,7 @@ from flwr.server.client_proxy import ClientProxy
 from flwr.common.logger import log
 
 from dasha.compressors import decompress
+from dasha.client import DashaClient
 
 
 class DashaStrategy(Strategy):
@@ -29,7 +30,7 @@ class DashaStrategy(Strategy):
     def __init__(self, step_size, num_clients):
         self._step_size = step_size
         self._parameters = None
-        self._gradient_estimators = None
+        self._gradient_estimator = None
         self._num_clients = num_clients
     
     def initialize_parameters(self, client_manager: ClientManager) -> Optional[Parameters]:
@@ -38,7 +39,7 @@ class DashaStrategy(Strategy):
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
-        fit_ins = FitIns(parameters, self._EMPTY_CONFIG)
+        fit_ins = FitIns(parameters, {DashaClient._SEND_FULL_GRADIENT: self._gradient_estimator is None})
         return [(client, fit_ins) for client in client_manager.all().values()]
 
     def configure_evaluate(
@@ -61,22 +62,15 @@ class DashaStrategy(Strategy):
         parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
         parsed_results = [(decompress(compressed_params), weight) for compressed_params, weight in parsed_results]
         aggregated_vectors = aggregate(parsed_results)
-        # if self._gradient_estimators is None:
-        #     return ndarrays_to_parameters([self._parameters]), {}
         assert len(aggregated_vectors) == 1
         aggregated_vector = aggregated_vectors[0]
-        gradient_estimator = aggregated_vector
-        self._parameters -= self._step_size * gradient_estimator
+        if self._gradient_estimator is None:
+            self._gradient_estimator = aggregated_vector
+            self._parameters -= self._step_size * self._gradient_estimator
+            return ndarrays_to_parameters([self._parameters]), {}
+        self._gradient_estimator += aggregated_vector
+        self._parameters -= self._step_size * self._gradient_estimator
         return ndarrays_to_parameters([self._parameters]), {}
-        
-        # for parameter, gradient_estimator in zip(self._parameters, self._gradient_estimators):
-        #     parameter -= self._step_size * gradient_estimator
-        # assert len(failures) == 0
-        # parsed_results = [(parameters_to_ndarrays(fit_res.parameters), 1) for _, fit_res in results]
-        # aggregated_vectors = aggregate(parsed_results)
-        # for aggregated_vector, gradient_estimator in zip(aggregated_vectors, self._gradient_estimators):
-        #     gradient_estimator += aggregated_vector
-        # return ndarrays_to_parameters(self._parameters), {}
 
     def aggregate_evaluate(
         self,

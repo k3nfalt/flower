@@ -55,7 +55,7 @@ class TestDashaClient(unittest.TestCase):
     def testFit(self) -> None:
         parameter = 3.0
         parameters_list = [np.array([parameter])]
-        gradients, num_samples, _ = self._client.fit(parameters_list, config={})
+        gradients, num_samples, _ = self._client.fit(parameters_list, config={self._client._SEND_FULL_GRADIENT: True})
         self.assertEqual(num_samples, 2)
         gradients = decompress(gradients)
         gradient_actual = sum([self._features[i][0] * (parameter * self._features[i][0] - self._targets[i][0])

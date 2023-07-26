@@ -13,10 +13,11 @@ import flwr as fl
 from flwr.common.typing import NDArrays, Scalar
 from logging import DEBUG
 
-from dasha.compressors import UnbiasedBaseCompressor, IdentityUnbiasedCompressor
+from dasha.compressors import UnbiasedBaseCompressor, IdentityUnbiasedCompressor, decompress
 
 
-class DashaClient(fl.client.NumPyClient):  
+class DashaClient(fl.client.NumPyClient):
+    _SEND_FULL_GRADIENT = 'send_full_gradient'
     def __init__(
         self,
         function: torch.nn.Module,
@@ -26,6 +27,9 @@ class DashaClient(fl.client.NumPyClient):
     ):
         self._function = function
         self._compressor = compressor
+        self._local_gradient_estimator = None
+        self._gradient_estimator = None
+        self._momentum = 1 / (1 + 2 * compressor.omega())
         self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
@@ -50,7 +54,17 @@ class DashaClient(fl.client.NumPyClient):
         function_value = self._function(self._features, self._targets)
         function_value.backward()
         gradients = np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
-        return self._compressor.compress(gradients), len(self._targets), {}
+        if config[self._SEND_FULL_GRADIENT]:
+            assert self._gradient_estimator is None
+            self._gradient_estimator = gradients
+            self._local_gradient_estimator = gradients
+            compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
+        else:
+            compressed_gradient = self._compressor.compress(
+                gradients - self._local_gradient_estimator - self._momentum * (self._gradient_estimator - self._local_gradient_estimator))
+            self._local_gradient_estimator = gradients
+            self._gradient_estimator += decompress(compressed_gradient) 
+        return compressed_gradient, len(self._targets), {}
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
