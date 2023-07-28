@@ -1,5 +1,5 @@
 num_clients: 5
-num_rounds: 1000
+num_rounds: 100
 
 client_resources:
   num_cpus: 2
@@ -15,7 +15,7 @@ compressor:
 
 strategy:
   _target_: dasha.strategy.DashaAggregator
-  step_size: 0.5
+  step_size: 2.0
 
 client:
   _target_: dasha.client.DashaClient

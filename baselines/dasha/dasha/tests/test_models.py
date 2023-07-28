@@ -13,8 +13,10 @@ class TestSmokeLinearNetWithNonConvexLoss(unittest.TestCase):
         loss = model(features, targets)
         loss.backward()
         parameters = list(model.parameters())
-        assert len(parameters) == 2
-        assert parameters[0].grad is not None
+        self.assertEqual(len(parameters), 2)
+        self.assertTrue(parameters[0].grad is not None)
+        accuracy = model.accuracy(features, targets)
+        self.assertTrue(accuracy >= 0 - 1e-2 and accuracy <= 1.0 + 1e-2)
 
 
 if __name__ == "__main__":

@@ -5,9 +5,18 @@ modifications) you might be better off instantiating your  model directly from t
 config. In this way, swapping your model for  another one can be done without changing
 the python code at all
 """
+import numpy as np
 
 import torch
 import torch.nn as nn
+
+
+class ClassificationModel(nn.Module):
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError()
+    
+    def accuracy(self, input: torch.Tensor, target: torch.Tensor) -> float:
+        raise NotImplementedError()
 
 
 class LinearNet(nn.Module):
@@ -36,7 +45,7 @@ class NonConvexLoss(nn.Module):
         return loss
 
 
-class LinearNetWithNonConvexLoss(nn.Module):
+class LinearNetWithNonConvexLoss(ClassificationModel):
     def __init__(self, num_input_features: int) -> None:
         super().__init__()
         self._net = LinearNet(num_input_features, num_output_features=1)
@@ -45,3 +54,10 @@ class LinearNetWithNonConvexLoss(nn.Module):
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         logits = self._net(input)
         return self._loss(logits, target)
+    
+    @torch.no_grad()
+    def accuracy(self, input: torch.Tensor, target: torch.Tensor) -> float:
+        logits = self._net(input).numpy().flatten()
+        target = target.numpy()
+        predictions = 2 * (logits >= 0.0) - 1
+        return np.sum(predictions == target) / len(target)

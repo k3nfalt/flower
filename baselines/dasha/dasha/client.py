@@ -18,6 +18,7 @@ from dasha.compressors import UnbiasedBaseCompressor, IdentityUnbiasedCompressor
 
 class CompressionClient(fl.client.NumPyClient):
     _SEND_FULL_GRADIENT = 'send_full_gradient'
+    METRIC_NORM = 'norm'
     def __init__(
         self,
         function: torch.nn.Module,
@@ -51,9 +52,9 @@ class CompressionClient(fl.client.NumPyClient):
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         self.set_parameters(parameters)
         self._function.zero_grad()
-        function_value = self._function(self._features, self._targets)
-        function_value.backward()
-        gradients = np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
+        loss = self._function(self._features, self._targets)
+        loss.backward()
+        gradients = self._get_current_gradients()
         if config[self._SEND_FULL_GRADIENT]:
             compressed_gradient = self._gradient_step(gradients)
         else:
@@ -71,12 +72,15 @@ class CompressionClient(fl.client.NumPyClient):
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
         self.set_parameters(parameters)
         loss = self._function(self._features, self._targets)
-        return float(loss), len(self._targets), {}
+        return float(loss), len(self._targets), {self.METRIC_NORM: np.linalg.norm(gradients)}
 
     def _prepare_input(self, dataset, device):
         self._features, self._targets = dataset[:]
         self._features = self._features.to(device)
         self._targets = self._targets.to(device)
+    
+    def _get_current_gradients(self):
+        return np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
         
     def _gradient_step(self, gradients):
         raise NotImplementedError()
@@ -87,7 +91,6 @@ class CompressionClient(fl.client.NumPyClient):
 
 class DashaClient(CompressionClient):
     def _gradient_step(self, gradients):
-        assert self._gradient_estimator is None
         self._gradient_estimator = gradients
         self._local_gradient_estimator = gradients
         compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
