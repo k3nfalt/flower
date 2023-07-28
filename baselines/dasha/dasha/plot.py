@@ -35,7 +35,7 @@ def plot(args) -> None:
         client = target.split(".")[-1]
         axs.plot(np.asarray(rounds), np.asarray(losses), 
                  label=f"{client}; Step size: {cfg.strategy.step_size}")
-        axs.set_ylabel("Loss")
+        axs.set_ylabel(args.metric)
         axs.set_xlabel("Rounds")
         axs.legend(loc="upper left")
         axs.set_yscale('log')

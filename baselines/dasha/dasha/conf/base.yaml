@@ -1,5 +1,5 @@
 num_clients: 5
-num_rounds: 1000
+num_rounds: 10000
 save_path: !!null
 
 client_resources:
