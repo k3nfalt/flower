@@ -1,6 +1,8 @@
 import sys
 import traceback
 import time
+import os
+import pickle
 
 from typing import Tuple
 # import concurrent.futures
@@ -8,7 +10,8 @@ from multiprocessing import Pool
 
 import hydra
 from hydra.utils import instantiate
-from omegaconf import DictConfig
+from hydra.core.hydra_config import HydraConfig
+from omegaconf import DictConfig, OmegaConf
 
 import numpy as np
 
@@ -64,52 +67,19 @@ def run_parallel(cfg: DictConfig) -> None:
 @hydra.main(config_path="conf", config_name="base", version_base=None)
 def main(cfg: DictConfig) -> None:
     find_pre_downloaded_or_download_dataset(cfg)
-    run_parallel(cfg)
-    
-    # dataloaders = load_dataset(cfg)
-    
-    # 2. Prepare your dataset
-    # here you should call a function in datasets.py that returns whatever is needed to:
-    # (1) ensure the server can access the dataset used to evaluate your model after
-    # aggregation
-    # (2) tell each client what dataset partitions they should use (e.g. a this could
-    # be a location in the file system, a list of dataloader, a list of ids to extract
-    # from a dataset, it's up to you)
+    history = run_parallel(cfg)
+    if cfg.save_path is not None:
+        assert not os.path.exists(cfg.save_path)
+        os.mkdir(cfg.save_path)
+        save_path = cfg.save_path
+    else:
+        save_path = HydraConfig.get().runtime.output_dir
+    print(f"Saving to {save_path}")
+    with open(os.path.join(save_path, "config.yaml"), "w") as f:
+        OmegaConf.save(cfg, f)
+    with open(os.path.join(save_path, "history"), "wb") as f:
+        pickle.dump(history, f)
 
-    # 3. Define your clients
-    # Define a function that returns another function that will be used during
-    # simulation to instantiate each individual client
-    # client_fn = client.<my_function_that_returns_a_function>()
-    # client_fn = client.gen_client_fn(
-    #     model=cfg.model,
-    # )
 
-    # 4. Define your strategy
-    # pass all relevant argument (including the global dataset used after aggregation,
-    # if needed by your method.)
-    # strategy_instance = instantiate(cfg.strategy)
-
-    # 5. Start Simulation
-    # history = fl.simulation.start_simulation(
-    #     client_fn=client_fn,
-    #     num_clients=cfg.num_clients,
-    #     config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
-    #     client_resources={
-    #         "num_cpus": cfg.client_resources.num_cpus,
-    #         "num_gpus": cfg.client_resources.num_gpus,
-    #     },
-    #     strategy=strategy_instance,
-    # )
-
-    # 6. Save your results
-    # Here you can save the `history` returned by the simulation and include
-    # also other buffers, statistics, info needed to be saved in order to later
-    # on generate the plots you provide in the README.md. You can for instance
-    # access elements that belong to the strategy for example:
-    # data = strategy.get_my_custom_data() -- assuming you have such method defined.
-    # Hydra will generate for you a directory each time you run the code. You
-    # can retrieve the path to that directory with this:
-    # save_path = HydraConfig.get().runtime.output_dir
-    
 if __name__ == "__main__":
     main()
