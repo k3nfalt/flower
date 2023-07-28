@@ -1,5 +1,5 @@
 num_clients: 5
-num_rounds: 100
+num_rounds: 1000
 
 client_resources:
   num_cpus: 2
@@ -8,10 +8,14 @@ client_resources:
 model:
   _target_: dasha.models.LinearNetWithNonConvexLoss
   num_input_features: 112
+  init_with_zeros: True
+
+# compressor:
+#   _target_: dasha.compressors.RandKCompressor
+#   number_of_coordinates: 10
 
 compressor:
-  _target_: dasha.compressors.RandKCompressor
-  number_of_coordinates: 10
+  _target_: dasha.compressors.IdentityUnbiasedCompressor
 
 strategy:
   _target_: dasha.strategy.DashaAggregator

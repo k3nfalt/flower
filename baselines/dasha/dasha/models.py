@@ -20,9 +20,12 @@ class ClassificationModel(nn.Module):
 
 
 class LinearNet(nn.Module):
-    def __init__(self, num_input_features: int, num_output_features: int) -> None:
+    def __init__(self, num_input_features: int, num_output_features: int, init_with_zeros: bool = False) -> None:
         super().__init__()
         self.fc = nn.Linear(num_input_features, num_output_features)
+        if init_with_zeros:
+            self.fc.weight.data.fill_(0.0)
+            self.fc.bias.data.fill_(0.0)
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         output_tensor = self.fc(input_tensor.view(input_tensor.shape[0], -1))
@@ -46,9 +49,9 @@ class NonConvexLoss(nn.Module):
 
 
 class LinearNetWithNonConvexLoss(ClassificationModel):
-    def __init__(self, num_input_features: int) -> None:
+    def __init__(self, num_input_features: int, init_with_zeros: bool = False) -> None:
         super().__init__()
-        self._net = LinearNet(num_input_features, num_output_features=1)
+        self._net = LinearNet(num_input_features, num_output_features=1, init_with_zeros=init_with_zeros)
         self._loss = NonConvexLoss()
     
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
