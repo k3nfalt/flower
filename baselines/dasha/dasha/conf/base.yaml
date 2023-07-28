@@ -15,15 +15,6 @@ compressor:
   _target_: dasha.compressors.RandKCompressor
   number_of_coordinates: 10
 
-strategy:
-  _target_: dasha.strategy.DashaAggregator
-  step_size: 0.5
-
-client:
-  _target_: dasha.client.DashaClient
-  device: cpu
-  evaluate_accuracy: true
-  send_gradient: true
-
 defaults:
   - dataset: libsvm
+  - method: dasha

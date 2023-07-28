@@ -50,19 +50,21 @@ class TestDashaBaseline(unittest.TestCase):
             },
             "num_clients": 2,
             "num_rounds": num_rounds,
-            "strategy": {
-                "_target_": "dasha.strategy.DashaAggregator",
-                "step_size": step_size
-            },
             "compressor": {
                 "_target_": "dasha.compressors.IdentityUnbiasedCompressor",
             },
             "model": {
                 "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
             },
-            "client": {
-                "_target_": "dasha.client.DashaClient",
-                "device": "cpu"
+            "method": {
+                "strategy": {
+                    "_target_": "dasha.strategy.DashaAggregator",
+                    "step_size": step_size
+                },
+                "client": {
+                    "_target_": "dasha.client.DashaClient",
+                    "device": "cpu"
+                }
             }
         })
         results = run_parallel(cfg)
@@ -82,10 +84,6 @@ class TestDashaBaselineWithRandK(unittest.TestCase):
             },
             "num_clients": 2,
             "num_rounds": num_rounds,
-            "strategy": {
-                "_target_": "dasha.strategy.DashaAggregator",
-                "step_size": step_size
-            },
             "model": {
                 "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
             },
@@ -93,9 +91,15 @@ class TestDashaBaselineWithRandK(unittest.TestCase):
                 "_target_": "dasha.compressors.RandKCompressor",
                 "number_of_coordinates": 1
             },
-            "client": {
-                "_target_": "dasha.client.DashaClient",
-                "device": "cpu"
+            "method": {
+                "strategy": {
+                    "_target_": "dasha.strategy.DashaAggregator",
+                    "step_size": step_size
+                },
+                "client": {
+                    "_target_": "dasha.client.DashaClient",
+                    "device": "cpu"
+                }
             }
         })
         results = run_parallel(cfg)
@@ -116,11 +120,6 @@ class TestMarinaBaselineWithRandK(unittest.TestCase):
             },
             "num_clients": 2,
             "num_rounds": num_rounds,
-            "strategy": {
-                "_target_": "dasha.strategy.MarinaAggregator",
-                "step_size": step_size,
-                "size_of_compressed_vectors": number_of_coordinates
-            },
             "model": {
                 "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
             },
@@ -128,9 +127,16 @@ class TestMarinaBaselineWithRandK(unittest.TestCase):
                 "_target_": "dasha.compressors.RandKCompressor",
                 "number_of_coordinates": number_of_coordinates
             },
-            "client": {
-                "_target_": "dasha.client.MarinaClient",
-                "device": "cpu"
+            "method": {
+                "strategy": {
+                    "_target_": "dasha.strategy.MarinaAggregator",
+                    "step_size": step_size,
+                    "size_of_compressed_vectors": number_of_coordinates
+                },
+                "client": {
+                    "_target_": "dasha.client.MarinaClient",
+                    "device": "cpu"
+                }
             }
         })
         results = run_parallel(cfg)

@@ -32,7 +32,7 @@ def _parallel_run(params: Tuple[DictConfig, int, int]) -> None:
     try:
         cfg, index_parallel, seed = params
         if index_parallel == 0:
-            strategy_instance = instantiate(cfg.strategy, num_clients=cfg.num_clients)
+            strategy_instance = instantiate(cfg.method.strategy, num_clients=cfg.num_clients)
             return fl.server.start_server(server_address=LOCAL_ADDRESS, 
                                           config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
                                           strategy=strategy_instance)
@@ -43,7 +43,7 @@ def _parallel_run(params: Tuple[DictConfig, int, int]) -> None:
             local_dataset = datasets[index_client]
             function = instantiate(cfg.model)
             compressor = instantiate(cfg.compressor, seed=seed)
-            client_instance = instantiate(cfg.client, 
+            client_instance = instantiate(cfg.method.client, 
                                           function=function,
                                           dataset=local_dataset,
                                           compressor=compressor)

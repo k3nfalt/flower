@@ -34,10 +34,10 @@ def plot(args) -> None:
             metrics = history.metrics_distributed[CompressionAggregator.SQUARED_GRADIENT_NORM]
             rounds, losses = list(zip(*metrics))
         np.testing.assert_array_equal(received_bytes_rounds, rounds)
-        target = cfg.client._target_
+        target = cfg.method.client._target_
         client = target.split(".")[-1]
         axs.plot(np.asarray(received_bytes), np.asarray(losses),
-                 label=f"{client}; Step size: {cfg.strategy.step_size}")
+                 label=f"{client}; Step size: {cfg.method.strategy.step_size}")
         axs.set_ylabel(args.metric)
         axs.set_xlabel("#bits / client")
         axs.legend(loc="upper left")
