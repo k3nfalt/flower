@@ -10,7 +10,16 @@ from omegaconf import OmegaConf
 
 def plot(args) -> None:
     fig, axs = plt.subplots(nrows=1, ncols=1, sharex="row")
-    for save_path in args.input_paths:
+    paths = []
+    for path in args.input_paths:
+        if os.path.exists(os.path.join(path, "multirun.yaml")):
+            local_folders = os.listdir(path)
+            for folder in local_folders:
+                if folder != "multirun.yaml":
+                    paths.append(os.path.join(path, folder))
+        else:
+            paths.append(path)
+    for save_path in paths:
         with open(os.path.join(save_path, "history"), "rb") as f:
             history = pickle.load(f)
         with open(os.path.join(save_path, "config.yaml"), "r") as f:
