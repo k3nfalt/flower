@@ -10,12 +10,9 @@ model:
   num_input_features: 112
   init_with_zeros: True
 
-# compressor:
-#   _target_: dasha.compressors.RandKCompressor
-#   number_of_coordinates: 10
-
 compressor:
-  _target_: dasha.compressors.IdentityUnbiasedCompressor
+  _target_: dasha.compressors.RandKCompressor
+  number_of_coordinates: 10
 
 strategy:
   _target_: dasha.strategy.DashaAggregator
