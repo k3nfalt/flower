@@ -2,19 +2,19 @@ import unittest
 
 import torch
 
-from dasha.models import LinearNet, NonConvexLoss
+from dasha.models import LinearNetWithNonConvexLoss
 
 class TestSmokeLinearNetWithNonConvexLoss(unittest.TestCase):
 
     def test(self) -> None:
         features = torch.rand(3, 42)
         targets = torch.Tensor([1, -1, 1])
-        linear_net = LinearNet(features.shape[1], num_output_features=1)
-        
-        logits = linear_net(features)
-        loss = NonConvexLoss()(logits, targets)
+        model = LinearNetWithNonConvexLoss(42)
+        loss = model(features, targets)
         loss.backward()
-        assert linear_net.fc.weight.grad is not None
+        parameters = list(model.parameters())
+        assert len(parameters) == 2
+        assert parameters[0].grad is not None
 
 
 if __name__ == "__main__":

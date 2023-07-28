@@ -11,8 +11,6 @@ import torch.nn as nn
 
 
 class LinearNet(nn.Module):
-    """A simple net with one linear layer"""
-
     def __init__(self, num_input_features: int, num_output_features: int) -> None:
         super().__init__()
         self.fc = nn.Linear(num_input_features, num_output_features)
@@ -30,19 +28,6 @@ class NonConvexLoss(nn.Module):
     """
     
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """
-        Parameters
-        ----------
-        input: torch.Tensor
-            Logits of a prediction model
-        target : torch.Tensor
-            Assumes that the elements of target belong to the set {-1, 1}
-
-        Returns
-        -------
-        torch.Tensor
-            Loss value
-        """
         assert len(input.shape) == 2 and input.shape[1] == 1
         input_target = input * target
         probs = torch.sigmoid(input_target)
@@ -52,9 +37,9 @@ class NonConvexLoss(nn.Module):
 
 
 class LinearNetWithNonConvexLoss(nn.Module):
-    def __init__(self, num_input_features: int, num_output_features: int) -> None:
+    def __init__(self, num_input_features: int) -> None:
         super().__init__()
-        self._net = LinearNet(num_input_features, num_output_features)
+        self._net = LinearNet(num_input_features, num_output_features=1)
         self._loss = NonConvexLoss()
     
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:

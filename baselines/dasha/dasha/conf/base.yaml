@@ -1,4 +1,4 @@
-num_clients: 10
+num_clients: 5
 num_rounds: 100
 
 client_resources:
@@ -6,15 +6,19 @@ client_resources:
   num_gpus: 0.0
 
 model:
-  # model config
+  _target_: dasha.models.LinearNetWithNonConvexLoss
+
+compressor:
+  _target_: dasha.compressors.RandKCompressor
+  number_of_coordinates: 10
 
 strategy:
-  _target_: dasha.strategy.CompressionAggregator
-  step_size: 0.01
+  _target_: dasha.strategy.DashaAggregator
+  step_size: 0.5
 
 client:
   _target_: dasha.client.DashaClient
-  device: 'cpu'
+  device: cpu
 
 defaults:
   - dataset: libsvm
