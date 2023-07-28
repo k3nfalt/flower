@@ -29,6 +29,7 @@ from dasha.client import DashaClient, MarinaClient, CompressionClient
 class CompressionAggregator(Strategy):
     _EMPTY_CONFIG = {}
     _SKIPPED = 'skipped'
+    SQUARED_GRADIENT_NORM = 'squared_gradient_norm'
     def __init__(self, step_size, num_clients):
         self._step_size = step_size
         self._parameters = None
@@ -81,13 +82,21 @@ class CompressionAggregator(Strategy):
     ) -> Tuple[Optional[float], Dict[str, Scalar]]:
         assert len(failures) == 0
         loss_aggregated = weighted_loss_avg([(1, evaluate_res.loss) for _, evaluate_res in results])
-        log(INFO, "Aggregated loss {} after {} rounds".format(loss_aggregated, server_round))
+        log(INFO, "Round: {}".format(server_round))
+        log(INFO, "Aggregated loss: {}".format(loss_aggregated))
         metrics = {}
+        if CompressionClient.GRADIENT in results[0][1].metrics:
+            gradients = [evaluate_res.metrics[CompressionClient.GRADIENT] for _, evaluate_res in results]
+            gradients = [np.frombuffer(gradient, dtype=np.float32) for gradient in gradients]
+            gradient = sum(gradients) / len(gradients)
+            norm_square = float(np.linalg.norm(gradient) ** 2)
+            metrics[self.SQUARED_GRADIENT_NORM] = norm_square
+            log(INFO, "Squared gradient norm: {}".format(norm_square))
         if CompressionClient.ACCURACY in results[0][1].metrics:
             accuracy_aggregated = weighted_loss_avg([(1, evaluate_res.metrics[CompressionClient.ACCURACY]) 
                                                      for _, evaluate_res in results])
             metrics[CompressionClient.ACCURACY] = accuracy_aggregated
-            log(INFO, "Aggregated accuracy {} after {} rounds".format(accuracy_aggregated, server_round))
+            log(INFO, "Aggregated accuracy: {}".format(accuracy_aggregated))
         return loss_aggregated, metrics
 
     def evaluate(

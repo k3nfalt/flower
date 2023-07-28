@@ -23,6 +23,7 @@ client:
   _target_: dasha.client.DashaClient
   device: cpu
   evaluate_accuracy: true
+  send_gradient: true
 
 defaults:
   - dataset: libsvm
