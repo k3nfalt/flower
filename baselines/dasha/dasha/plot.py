@@ -26,17 +26,20 @@ def plot(args) -> None:
             history = pickle.load(f)
         with open(os.path.join(save_path, "config.yaml"), "r") as f:
             cfg = OmegaConf.load(f)
+        metric = history.metrics_distributed[CompressionAggregator.RECEIVED_BYTES]
+        received_bytes_rounds, received_bytes = list(zip(*metric))
         if args.metric == 'loss':
             rounds, losses = list(zip(*history.losses_distributed))
         elif args.metric == CompressionAggregator.SQUARED_GRADIENT_NORM:
             metrics = history.metrics_distributed[CompressionAggregator.SQUARED_GRADIENT_NORM]
             rounds, losses = list(zip(*metrics))
+        np.testing.assert_array_equal(received_bytes_rounds, rounds)
         target = cfg.client._target_
         client = target.split(".")[-1]
-        axs.plot(np.asarray(rounds), np.asarray(losses), 
+        axs.plot(np.asarray(received_bytes), np.asarray(losses),
                  label=f"{client}; Step size: {cfg.strategy.step_size}")
         axs.set_ylabel(args.metric)
-        axs.set_xlabel("Rounds")
+        axs.set_xlabel("#bits / client")
         axs.legend(loc="upper left")
         axs.set_yscale('log')
         fig.savefig(args.output_path)

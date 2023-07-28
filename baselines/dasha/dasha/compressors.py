@@ -10,6 +10,15 @@ def decompress(compressed_vector, assert_compressor=None):
     return decompressed_array
 
 
+BITS_IN_FLOAT_32 = 32
+
+
+def estimate_size(compressed_vector):
+    _, indices, values, _ = compressed_vector
+    assert values.dtype == np.float32
+    return (len(indices) + len(values)) * BITS_IN_FLOAT_32
+
+
 class BaseCompressor(object):
     def __init__(self, seed, dim) -> None:
         self._seed = seed

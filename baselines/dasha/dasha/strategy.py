@@ -22,7 +22,7 @@ from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from flwr.common.logger import log
 
-from dasha.compressors import decompress, IdentityUnbiasedCompressor
+from dasha.compressors import decompress, IdentityUnbiasedCompressor, estimate_size
 from dasha.client import DashaClient, MarinaClient, CompressionClient
 
 
@@ -30,11 +30,13 @@ class CompressionAggregator(Strategy):
     _EMPTY_CONFIG = {}
     _SKIPPED = 'skipped'
     SQUARED_GRADIENT_NORM = 'squared_gradient_norm'
+    RECEIVED_BYTES = 'received_bytes'
     def __init__(self, step_size, num_clients):
         self._step_size = step_size
         self._parameters = None
         self._gradient_estimator = None
         self._num_clients = num_clients
+        self._total_received_bytes_per_client_during_fit = 0
     
     def initialize_parameters(self, client_manager: ClientManager) -> Optional[Parameters]:
         return None
@@ -63,6 +65,9 @@ class CompressionAggregator(Strategy):
             return ndarrays_to_parameters([self._parameters]), {}
         parsed_results = [parameters_to_ndarrays(fit_res.parameters) for _, fit_res in results]
         expect_compressor = IdentityUnbiasedCompressor.name() if self._gradient_estimator is None else None
+        estimated_sizes = [estimate_size(compressed_params) for compressed_params in parsed_results]
+        max_estimated_size = int(np.max(estimated_sizes))
+        self._total_received_bytes_per_client_during_fit += max_estimated_size
         parsed_results = [decompress(compressed_params, assert_compressor=expect_compressor) 
                           for compressed_params in parsed_results]
         aggregated_vector = sum(parsed_results) / len(parsed_results)
@@ -84,7 +89,7 @@ class CompressionAggregator(Strategy):
         loss_aggregated = weighted_loss_avg([(1, evaluate_res.loss) for _, evaluate_res in results])
         log(INFO, "Round: {}".format(server_round))
         log(INFO, "Aggregated loss: {}".format(loss_aggregated))
-        metrics = {}
+        metrics = {self.RECEIVED_BYTES: self._total_received_bytes_per_client_during_fit}
         if CompressionClient.GRADIENT in results[0][1].metrics:
             gradients = [evaluate_res.metrics[CompressionClient.GRADIENT] for _, evaluate_res in results]
             gradients = [np.frombuffer(gradient, dtype=np.float32) for gradient in gradients]
