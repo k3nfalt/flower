@@ -42,6 +42,7 @@ flwr = "1.3.0" # don't change this
 ray = "1.11.1" # don't change this
 hydra-core = "1.3.2" # don't change this
 scikit-learn = "1.3.0"
+matplotlib = "3.7.1"
 # Installing Torch. TODO: Fix and install the relevant version of Torch based on the current system.
 torch = [{ url = "https://download.pytorch.org/whl/cu118/torch-2.0.0%2Bcu118-cp38-cp38-linux_x86_64.whl", markers="sys_platform == 'linux'"},
          { url = "https://download.pytorch.org/whl/cpu/torch-2.0.0-cp39-none-macosx_11_0_arm64.whl", markers="sys_platform == 'darwin'"}]
