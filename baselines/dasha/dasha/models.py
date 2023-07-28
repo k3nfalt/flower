@@ -40,7 +40,8 @@ class NonConvexLoss(nn.Module):
     """
     
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        assert len(input.shape) == 2 and input.shape[1] == 1
+        assert len(input.shape) == 1
+        target = 2 * target - 1
         input_target = input * target
         probs = torch.sigmoid(input_target)
         loss = torch.square(1 - probs)
@@ -55,12 +56,12 @@ class LinearNetWithNonConvexLoss(ClassificationModel):
         self._loss = NonConvexLoss()
     
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        logits = self._net(input)
+        logits = self._net(input).flatten()
         return self._loss(logits, target)
     
     @torch.no_grad()
     def accuracy(self, input: torch.Tensor, target: torch.Tensor) -> float:
         logits = self._net(input).numpy().flatten()
         target = target.numpy()
-        predictions = 2 * (logits >= 0.0) - 1
+        predictions = (logits >= 0.0).astype(np.int32)
         return np.sum(predictions == target) / len(target)

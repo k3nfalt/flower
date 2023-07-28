@@ -23,7 +23,11 @@ def load_libsvm_dataset(cfg: DictConfig) -> Dataset:
     print("Original labels: {}".format(np.unique(labels, return_counts=True)))
     print("Features Shape: {}".format(data.shape))
     if dataset_name == LIBSVMDatasetName.MUSHROOMS.value:
-        labels = labels.astype(np.int64) - 1
+        labels = labels.astype(np.int64)
+        remap_labels = np.zeros_like(labels)
+        remap_labels[labels == 1] = 0
+        remap_labels[labels != 1] = 1
+        labels = remap_labels
     else:
         raise RuntimeError("Wrong dataset")
     dataset = data_utils.TensorDataset(torch.Tensor(data), torch.Tensor(labels))
