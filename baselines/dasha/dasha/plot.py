@@ -7,6 +7,8 @@ import numpy as np
 
 from omegaconf import OmegaConf
 
+from dasha.strategy import CompressionAggregator
+
 
 def plot(args) -> None:
     fig, axs = plt.subplots(nrows=1, ncols=1, sharex="row")
@@ -24,7 +26,11 @@ def plot(args) -> None:
             history = pickle.load(f)
         with open(os.path.join(save_path, "config.yaml"), "r") as f:
             cfg = OmegaConf.load(f)
-        rounds, losses = list(zip(*history.losses_distributed))
+        if args.metric == 'loss':
+            rounds, losses = list(zip(*history.losses_distributed))
+        elif args.metric == CompressionAggregator.SQUARED_GRADIENT_NORM:
+            metrics = history.metrics_distributed[CompressionAggregator.SQUARED_GRADIENT_NORM]
+            rounds, losses = list(zip(*metrics))
         target = cfg.client._target_
         client = target.split(".")[-1]
         axs.plot(np.asarray(rounds), np.asarray(losses), 
@@ -32,6 +38,7 @@ def plot(args) -> None:
         axs.set_ylabel("Loss")
         axs.set_xlabel("Rounds")
         axs.legend(loc="upper left")
+        axs.set_yscale('log')
         fig.savefig(args.output_path)
 
 if __name__ == "__main__":
@@ -46,6 +53,12 @@ if __name__ == "__main__":
         "--output_path",
         type=str,
         help="Path to a saved plot",
+    )
+    parser.add_argument(
+        "--metric",
+        type=str,
+        default='loss',
+        help="Type of metric to plot",
     )
     args = parser.parse_args()
     plot(args)
