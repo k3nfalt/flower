@@ -1,6 +1,6 @@
 import time
 from typing import Callable, Dict, List, Optional, Tuple, Union
-from logging import WARNING
+from logging import WARNING, INFO
 
 import numpy as np
 
@@ -23,7 +23,7 @@ from flwr.server.client_proxy import ClientProxy
 from flwr.common.logger import log
 
 from dasha.compressors import decompress, IdentityUnbiasedCompressor
-from dasha.client import DashaClient, MarinaClient
+from dasha.client import DashaClient, MarinaClient, CompressionClient
 
 
 class CompressionAggregator(Strategy):
@@ -81,7 +81,14 @@ class CompressionAggregator(Strategy):
     ) -> Tuple[Optional[float], Dict[str, Scalar]]:
         assert len(failures) == 0
         loss_aggregated = weighted_loss_avg([(1, evaluate_res.loss) for _, evaluate_res in results])
-        return loss_aggregated, {}
+        log(INFO, "Aggregated loss {} after {} rounds".format(loss_aggregated, server_round))
+        metrics = {}
+        if CompressionClient.ACCURACY in results[0][1].metrics:
+            accuracy_aggregated = weighted_loss_avg([(1, evaluate_res.metrics[CompressionClient.ACCURACY]) 
+                                                     for _, evaluate_res in results])
+            metrics[CompressionClient.ACCURACY] = accuracy_aggregated
+            log(INFO, "Aggregated accuracy {} after {} rounds".format(accuracy_aggregated, server_round))
+        return loss_aggregated, metrics
 
     def evaluate(
         self, server_round: int, parameters: Parameters

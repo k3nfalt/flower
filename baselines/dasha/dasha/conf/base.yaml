@@ -15,11 +15,12 @@ compressor:
 
 strategy:
   _target_: dasha.strategy.DashaAggregator
-  step_size: 2.0
+  step_size: 0.5
 
 client:
   _target_: dasha.client.DashaClient
   device: cpu
+  evaluate_accuracy: true
 
 defaults:
   - dataset: libsvm

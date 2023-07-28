@@ -18,19 +18,21 @@ from dasha.compressors import UnbiasedBaseCompressor, IdentityUnbiasedCompressor
 
 class CompressionClient(fl.client.NumPyClient):
     _SEND_FULL_GRADIENT = 'send_full_gradient'
-    METRIC_NORM = 'norm'
+    ACCURACY = 'accuracy'
     def __init__(
         self,
         function: torch.nn.Module,
         dataset: Dataset,
         device: torch.device,
-        compressor: UnbiasedBaseCompressor = IdentityUnbiasedCompressor()
+        compressor: UnbiasedBaseCompressor = IdentityUnbiasedCompressor(),
+        evaluate_accuracy=False
     ):
         self._function = function
         self._compressor = compressor
         self._local_gradient_estimator = None
         self._gradient_estimator = None
         self._momentum = None
+        self._evaluate_accuracy = evaluate_accuracy
         self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
@@ -72,7 +74,11 @@ class CompressionClient(fl.client.NumPyClient):
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
         self.set_parameters(parameters)
         loss = self._function(self._features, self._targets)
-        return float(loss), len(self._targets), {self.METRIC_NORM: np.linalg.norm(gradients)}
+        metrics = {}
+        if self._evaluate_accuracy:
+            accuracy = self._function.accuracy(self._features, self._targets)
+            metrics[self.ACCURACY] = accuracy
+        return float(loss), len(self._targets), metrics
 
     def _prepare_input(self, dataset, device):
         self._features, self._targets = dataset[:]
