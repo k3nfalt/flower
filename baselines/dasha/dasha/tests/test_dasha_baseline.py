@@ -148,7 +148,7 @@ class TestMomentumHelpsInStochasticDashaBaselineWithRandK(unittest.TestCase):
                     "_target_": "dasha.client.StochasticDashaClient",
                     "device": "cpu",
                     "evaluate_full_dataset": True,
-                    "stochastic_momentum": 0.1,
+                    "stochastic_momentum": None,
                     "mega_batch_size": 10
                 }
             }
@@ -157,6 +157,49 @@ class TestMomentumHelpsInStochasticDashaBaselineWithRandK(unittest.TestCase):
         mean_loss = []
         for stochastic_momentum in [0.01, 0.1, 1.0]:
             params["method"]["client"]["stochastic_momentum"] = stochastic_momentum
+            cfg = OmegaConf.create(params)
+            results = run_parallel(cfg)
+            results = [loss for (_, loss) in results.losses_distributed]
+            mean_loss.append(np.mean(results[-100:]))
+        self.assertLess(mean_loss[0], mean_loss[1])
+        self.assertLess(mean_loss[1], mean_loss[2])
+
+
+class TestMegaBatchHelpsInStochasticMarinaBaselineWithRandK(unittest.TestCase):
+    def testBaseline(self) -> None:
+        step_size = 1.0
+        num_rounds = 1000
+        
+        params = {
+            "dataset": {
+                "type": DatasetType.RANDOM_TEST.value,
+            },
+            "num_clients": 2,
+            "num_rounds": num_rounds,
+            "model": {
+                "_target_": "dasha.tests.test_dasha_baseline.ClassificationDummyNet",
+            },
+            "compressor": {
+                "_target_": "dasha.compressors.RandKCompressor",
+                "number_of_coordinates": 1
+            },
+            "method": {
+                "strategy": {
+                    "_target_": "dasha.strategy.MarinaAggregator",
+                    "step_size": step_size
+                },
+                "client": {
+                    "_target_": "dasha.client.StochasticMarinaClient",
+                    "device": "cpu",
+                    "evaluate_full_dataset": True,
+                    "mega_batch_size": None
+                }
+            }
+        }
+        
+        mean_loss = []
+        for mega_batch_size in [100, 10, 1]:
+            params["method"]["client"]["mega_batch_size"] = mega_batch_size
             cfg = OmegaConf.create(params)
             results = run_parallel(cfg)
             results = [loss for (_, loss) in results.losses_distributed]

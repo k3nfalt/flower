@@ -248,3 +248,16 @@ class StochasticDashaClient(StochasticGradientCompressionClient, BaseDashaClient
         self._local_gradient_estimator = next_local_gradient_estimator
         self._gradient_estimator += decompress(compressed_gradient)
         return compressed_gradient
+
+
+class StochasticMarinaClient(StochasticGradientCompressionClient):
+    def _stochastic_gradient_step(self, parameters: NDArrays):
+        gradients = self._calculate_mega_stochastic_gradient(parameters)
+        assert self._gradient_estimator is None
+        compressed_gradient = IdentityUnbiasedCompressor().compress(gradients)
+        return compressed_gradient
+    
+    def _stochastic_compression_step(self, parameters: NDArrays):
+        previous_gradients, gradients = self._calculate_stochastic_gradient_in_current_and_previous_parameters(parameters)
+        compressed_gradient = self._compressor.compress(gradients - previous_gradients)
+        return compressed_gradient
