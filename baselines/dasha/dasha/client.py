@@ -36,7 +36,8 @@ class CompressionClient(fl.client.NumPyClient):
         self._gradient_estimator = None
         self._momentum = None
         self._evaluate_accuracy = evaluate_accuracy
-        self._prepare_input(dataset, device)
+        self._dataset = dataset
+        self._device = device
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         parameters = [val.detach().cpu().numpy().flatten() for _, val in self._function.named_parameters()]
@@ -54,28 +55,22 @@ class CompressionClient(fl.client.NumPyClient):
             state_dict[k] = torch.Tensor(parameter)
             shift += numel
         self._function.load_state_dict(state_dict, strict=True)
-
-    def _prepare_input(self, dataset, device):
-        self._features, self._targets = dataset[:]
-        self._features = self._features.to(device)
-        self._targets = self._targets.to(device)
     
     def _get_current_gradients(self):
         return np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
 
 
 class GradientCompressionClient(CompressionClient):
-    def __init__(
-        self,
-        function: ClassificationModel,
-        dataset: Dataset,
-        device: torch.device,
-        compressor: Optional[UnbiasedBaseCompressor] = None,
-        evaluate_accuracy=False,
-        send_gradient=False
-    ):
-        super().__init__(function, dataset, device, compressor, evaluate_accuracy)
+    def __init__(self, *args, send_gradient=False, **kwargs):
+        super().__init__(*args, **kwargs)
         self._send_gradient = send_gradient
+        self._features, self._targets = None, None
+        self._prepare_input(self._dataset, self._device)
+        
+    def _prepare_input(self, dataset, device):
+        self._features, self._targets = dataset[:]
+        self._features = self._features.to(device)
+        self._targets = self._targets.to(device)
     
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         if config[self._SEND_FULL_GRADIENT]:
@@ -153,34 +148,44 @@ class MarinaClient(GradientCompressionClient):
         return compressed_gradient
 
 
-# class StochasticGradientCompressionClient(CompressionClient):
-#     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
-#         if config[self._SEND_FULL_GRADIENT]:
-#             compressed_gradient = self._stochastic_gradient_step(parameters)
-#         else:
-#             compressed_gradient = self._stochastic_compression_step(parameters)
-#         return compressed_gradient, len(self._targets), {self.SIZE_OF_COMPRESSED_VECTORS: self._compressor.num_nonzero_components()}
+class StochasticGradientCompressionClient(CompressionClient):
+    _LARGE_NUMBER = 10**12
+    def __init__(self, *args, batch_size=1, num_workers=4, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._batch_size = batch_size
+        self._previous_parameters = None
+        self._batch_sampler = iter(torch.utils.data.DataLoader(
+            self._dataset, batch_size=self._batch_size, num_workers=num_workers, 
+            sampler=torch.utils.data.RandomSampler(self._dataset, replacement=True, num_samples=self._LARGE_NUMBER)))
+    
+    def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
+        if config[self._SEND_FULL_GRADIENT]:
+            compressed_gradient = self._stochastic_gradient_step(parameters)
+        else:
+            compressed_gradient = self._stochastic_compression_step(parameters)
+        return compressed_gradient, len(self._targets), {self.SIZE_OF_COMPRESSED_VECTORS: self._compressor.num_nonzero_components()}
 
-#     def evaluate(
-#         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
-#         self._set_parameters(parameters)
-#         # loss = self._function(self._features, self._targets)
-#         metrics = {}
-#         if self._evaluate_accuracy:
-#             accuracy = self._function.accuracy(self._features, self._targets)
-#             metrics[self.ACCURACY] = accuracy
-#         return float(loss), len(self._targets), metrics
+    def evaluate(
+        self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
+        self._set_parameters(parameters)
+        # loss = self._function(self._features, self._targets)
+        metrics = {}
+        if self._evaluate_accuracy:
+            accuracy = self._function.accuracy(self._features, self._targets)
+            metrics[self.ACCURACY] = accuracy
+        return float(loss), len(self._targets), metrics
     
-#     def _calculate_stochastic_gradient(self, parameters: NDArrays):
-#         self._set_parameters(parameters)
-#         self._function.zero_grad()
-#         loss = self._function(self._features, self._targets)
-#         loss.backward()
-#         gradients = self._get_current_gradients()
-#         return gradients
+    def _calculate_stochastic_gradient(self, parameters: NDArrays):
+        features, labels = next(self._batch_sampler)
+        self._set_parameters(parameters)
+        self._function.zero_grad()
+        loss = self._function(self._features, self._targets)
+        loss.backward()
+        gradients = self._get_current_gradients()
+        return gradients
     
-#     def _stochastic_gradient_step(self):
-#         raise NotImplementedError()
+    def _stochastic_gradient_step(self):
+        raise NotImplementedError()
     
-#     def _stochastic_compression_step(self):
-        # raise NotImplementedError()
+    def _stochastic_compression_step(self):
+        raise NotImplementedError()
