@@ -2,6 +2,8 @@ import os
 import unittest
 import multiprocessing
 
+from typing import List
+
 import torch
 import torch.nn as nn
 import torch.utils.data as data_utils
@@ -14,6 +16,7 @@ from dasha.dataset_preparation import DatasetType
 from dasha.main import run_parallel
 from dasha.tests.test_clients import DummyNetTwoParameters
 from dasha.dataset import load_test_dataset
+from dasha.models import ClassificationModel
 
 
 TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets')
@@ -108,6 +111,16 @@ class TestDashaBaselineWithRandK(unittest.TestCase):
         self.assertLess(results[-1], 1e-5)
 
 
+class ClassificationDummyNet(ClassificationModel):
+    def __init__(self, input_shape: List[int]) -> None:
+        super().__init__(input_shape)
+        self._weight = nn.Parameter(torch.Tensor([0]))
+        self._bias = nn.Parameter(torch.Tensor([0]))
+
+    def forward(self, features: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        return 0.5 * torch.mean((torch.sigmoid(self._weight * features - self._bias) - targets)**2)
+
+
 class TestStochasticDashaBaselineWithRandK(unittest.TestCase):
     def testBaseline(self) -> None:
         step_size = 0.001
@@ -120,11 +133,12 @@ class TestStochasticDashaBaselineWithRandK(unittest.TestCase):
             "num_clients": 2,
             "num_rounds": num_rounds,
             "model": {
-                "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
+                "_target_": "dasha.tests.test_dasha_baseline.ClassificationDummyNet",
             },
             "compressor": {
-                "_target_": "dasha.compressors.RandKCompressor",
-                "number_of_coordinates": 1
+                "_target_": "dasha.compressors.IdentityUnbiasedCompressor",
+                # "_target_": "dasha.compressors.RandKCompressor",
+                # "number_of_coordinates": 1
             },
             "method": {
                 "strategy": {
@@ -134,7 +148,7 @@ class TestStochasticDashaBaselineWithRandK(unittest.TestCase):
                 "client": {
                     "_target_": "dasha.client.StochasticDashaClient",
                     "device": "cpu",
-                    "stochastic_momentum": 0.001,
+                    "stochastic_momentum": 0.01,
                     "mega_batch_size": 10
                 }
             }
