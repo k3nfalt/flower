@@ -131,7 +131,6 @@ class TestMarinaBaselineWithRandK(unittest.TestCase):
                 "strategy": {
                     "_target_": "dasha.strategy.MarinaAggregator",
                     "step_size": step_size,
-                    "size_of_compressed_vectors": number_of_coordinates
                 },
                 "client": {
                     "_target_": "dasha.client.MarinaClient",

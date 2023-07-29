@@ -21,17 +21,18 @@ class CompressionClient(fl.client.NumPyClient):
     _SEND_FULL_GRADIENT = 'send_full_gradient'
     ACCURACY = 'accuracy'
     GRADIENT = 'gradient'
+    SIZE_OF_COMPRESSED_VECTORS = 'size_of_compressed_vectors'
     def __init__(
         self,
         function: ClassificationModel,
         dataset: Dataset,
         device: torch.device,
-        compressor: UnbiasedBaseCompressor = IdentityUnbiasedCompressor(),
+        compressor: Optional[UnbiasedBaseCompressor] = None,
         evaluate_accuracy=False,
         send_gradient=False
     ):
         self._function = function
-        self._compressor = compressor
+        self._compressor = compressor if compressor is not None else IdentityUnbiasedCompressor()
         self._local_gradient_estimator = None
         self._gradient_estimator = None
         self._momentum = None
@@ -46,6 +47,7 @@ class CompressionClient(fl.client.NumPyClient):
     def set_parameters(self, parameters: NDArrays) -> None:
         assert len(parameters) == 1
         parameters = parameters[0]
+        self._compressor.set_dim(len(parameters))
         state_dict = {}
         shift = 0
         for k, parameter_layer in self._function.named_parameters():
@@ -65,12 +67,11 @@ class CompressionClient(fl.client.NumPyClient):
             compressed_gradient = self._gradient_step(gradients)
         else:
             compressed_gradient = self._compression_step(gradients)
-        return compressed_gradient, len(self._targets), {}
+        return compressed_gradient, len(self._targets), {self.SIZE_OF_COMPRESSED_VECTORS: self._compressor.num_nonzero_components()}
     
     def _get_momentum(self, dim):
         if self._momentum is not None:
             return self._momentum
-        self._compressor.set_dim(dim)
         self._momentum = 1 / (1 + 2 * self._compressor.omega())
         return self._momentum
 

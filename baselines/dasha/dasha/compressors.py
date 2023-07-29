@@ -25,6 +25,9 @@ class BaseCompressor(object):
         self._dim = dim
     
     def compress(self, vector):
+        dim = vector.shape[0]
+        assert self._dim is None or self._dim == dim
+        self._dim = dim
         compressed_vector = self.compress_impl(vector)
         class_name = self.name()
         compressed_vector.append(class_name)
@@ -35,6 +38,7 @@ class BaseCompressor(object):
         return cls.__name__
     
     def set_dim(self, dim):
+        assert self._dim is None or self._dim == dim
         self._dim = dim
 
     def compress_impl(self, vector):
@@ -54,7 +58,7 @@ class IdentityUnbiasedCompressor(UnbiasedBaseCompressor):
         super(IdentityUnbiasedCompressor, self).__init__(seed=seed, dim=dim)
     
     def compress_impl(self, vector):
-        dim = vector.shape[0]
+        dim = self._dim
         return [np.array(dim, dtype=np.int32), np.arange(dim), np.copy(vector)]
     
     def omega(self):
@@ -75,10 +79,8 @@ class RandKCompressor(UnbiasedBaseCompressor):
         return self._number_of_coordinates
 
     def compress_impl(self, vector):
-        dim = vector.shape[0]
-        assert self._dim is None or self._dim == dim
-        self._dim = dim
         assert self._number_of_coordinates >= 0
+        dim = self._dim
         indices = self._generator.choice(dim, self._number_of_coordinates, replace = False)
         values = vector[indices] * float(dim / self._number_of_coordinates)
         return [np.array(dim, dtype=np.int32), indices, values]

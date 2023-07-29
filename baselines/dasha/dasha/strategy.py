@@ -123,20 +123,34 @@ class DashaAggregator(CompressionAggregator):
 
 
 class MarinaAggregator(CompressionAggregator):
-    def __init__(self, *args, seed=None, size_of_compressed_vectors=None, **kwargs):
+    def __init__(self, *args, seed=None, **kwargs):
         super(MarinaAggregator, self).__init__(*args, **kwargs)
         self._generator = np.random.default_rng(seed)
-        assert size_of_compressed_vectors is not None
-        self._size_of_compressed_vectors = size_of_compressed_vectors
+        self._size_of_compressed_vectors = None
         self._prob = None
     
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
-        prob = self._get_prob()
-        self._gradient_estimator = None if self._bernoulli_sample(self._generator, prob) else self._gradient_estimator
+        if self._gradient_estimator is not None:
+            prob = self._get_prob()
+            if self._bernoulli_sample(self._generator, prob):
+                self._gradient_estimator = None
         fit_ins = FitIns(parameters, {MarinaClient._SEND_FULL_GRADIENT: self._gradient_estimator is None})
         return [(client, fit_ins) for client in client_manager.all().values()]
+    
+    def aggregate_fit(
+        self,
+        server_round: int,
+        results: List[Tuple[ClientProxy, FitRes]],
+        failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
+    ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
+        loss_aggregated, metrics = super(MarinaAggregator, self).aggregate_fit(server_round, results, failures)
+        size_of_compressed_vectors = [fit_res.metrics[CompressionClient.SIZE_OF_COMPRESSED_VECTORS] 
+                                      for _, fit_res in results]
+        assert np.all(np.equal(size_of_compressed_vectors, size_of_compressed_vectors[0]))
+        self._size_of_compressed_vectors = size_of_compressed_vectors[0]
+        return loss_aggregated, metrics
     
     def _get_prob(self):
         if self._prob is not None:

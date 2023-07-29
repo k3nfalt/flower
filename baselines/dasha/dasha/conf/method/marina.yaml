@@ -1,10 +1,9 @@
 strategy:
   _target_: dasha.strategy.MarinaAggregator
-  step_size: 0.5
-  size_of_compressed_vectors: ???
+  step_size: ???
 
 client:
   _target_: dasha.client.MarinaClient
   device: cpu
-  evaluate_accuracy: true
-  send_gradient: true
+  evaluate_accuracy: false
+  send_gradient: false
