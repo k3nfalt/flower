@@ -60,17 +60,18 @@ class CompressionClient(fl.client.NumPyClient):
         return np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
 
 
+def _prepare_full_dataset(dataset, device):
+    features, targets = dataset[:]
+    features = features.to(device)
+    targets = targets.to(device)
+    return features, targets
+
+
 class GradientCompressionClient(CompressionClient):
     def __init__(self, *args, send_gradient=False, **kwargs):
         super().__init__(*args, **kwargs)
         self._send_gradient = send_gradient
-        self._features, self._targets = None, None
-        self._prepare_input(self._dataset, self._device)
-        
-    def _prepare_input(self, dataset, device):
-        self._features, self._targets = dataset[:]
-        self._features = self._features.to(device)
-        self._targets = self._targets.to(device)
+        self._features, self._targets = _prepare_full_dataset(self._dataset, self._device)
     
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         if config[self._SEND_FULL_GRADIENT]:
@@ -152,15 +153,21 @@ class MarinaClient(GradientCompressionClient):
 
 class StochasticGradientCompressionClient(CompressionClient):
     _LARGE_NUMBER = 10**12
-    def __init__(self, *args, mega_batch_size=None, batch_size=1, num_workers=4, **kwargs):
+    def __init__(self, *args, 
+                 mega_batch_size=None, batch_size=1, num_workers=4, evaluate_full_dataset=False,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         self._batch_size = batch_size
         assert mega_batch_size is not None
         self._mega_batch_size = mega_batch_size
         self._previous_parameters = None
+        self._evaluate_full_dataset = evaluate_full_dataset
         self._batch_sampler = iter(torch.utils.data.DataLoader(
             self._dataset, batch_size=self._batch_size, num_workers=num_workers, 
             sampler=torch.utils.data.RandomSampler(self._dataset, replacement=True, num_samples=self._LARGE_NUMBER)))
+        self._features, self._targets = None, None
+        if self._evaluate_full_dataset:
+            self._features, self._targets = _prepare_full_dataset(self._dataset, self._device)
     
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         if config[self._SEND_FULL_GRADIENT]:
@@ -172,9 +179,12 @@ class StochasticGradientCompressionClient(CompressionClient):
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
         self._set_parameters(parameters)
-        features, targets = next(self._batch_sampler)
-        features = features.to(self._device)
-        targets = targets.to(self._device)
+        if not self._evaluate_full_dataset:
+            features, targets = next(self._batch_sampler)
+            features = features.to(self._device)
+            targets = targets.to(self._device)
+        else:
+            features, targets = self._features, self._targets
         loss = self._function(features, targets)
         metrics = {}
         if self._evaluate_accuracy:
