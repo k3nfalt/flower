@@ -73,9 +73,8 @@ class CompressionAggregator(Strategy):
         aggregated_vector = sum(parsed_results) / len(parsed_results)
         if self._gradient_estimator is None:
             self._gradient_estimator = aggregated_vector
-            self._parameters -= self._step_size * self._gradient_estimator
-            return ndarrays_to_parameters([self._parameters]), {}
-        self._gradient_estimator += aggregated_vector
+        else:
+            self._gradient_estimator += aggregated_vector
         self._parameters -= self._step_size * self._gradient_estimator
         return ndarrays_to_parameters([self._parameters]), {}
 
