@@ -22,6 +22,7 @@ class DatasetType(Enum):
     LIBSVM = 'libsvm'
     CIFAR10 = 'cifar10'
     TEST = 'test'
+    RANDOM_TEST = 'random_test'
     
     
 class DatasetSplit(Enum):

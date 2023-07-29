@@ -108,7 +108,15 @@ class GradientCompressionClient(CompressionClient):
         raise NotImplementedError()
 
 
-class DashaClient(GradientCompressionClient):
+class BaseDashaClient(CompressionClient):
+    def _get_momentum(self):
+        if self._momentum is not None:
+            return self._momentum
+        self._momentum = 1 / (1 + 2 * self._compressor.omega())
+        return self._momentum
+
+
+class DashaClient(GradientCompressionClient, BaseDashaClient):
     def _gradient_step(self, parameters: NDArrays):
         gradients = self._calculate_gradient(parameters)
         self._gradient_estimator = gradients
@@ -124,12 +132,6 @@ class DashaClient(GradientCompressionClient):
         self._local_gradient_estimator = gradients
         self._gradient_estimator += decompress(compressed_gradient)
         return compressed_gradient
-    
-    def _get_momentum(self):
-        if self._momentum is not None:
-            return self._momentum
-        self._momentum = 1 / (1 + 2 * self._compressor.omega())
-        return self._momentum
 
 
 class MarinaClient(GradientCompressionClient):
@@ -213,3 +215,26 @@ class StochasticGradientCompressionClient(CompressionClient):
     
     def _stochastic_compression_step(self):
         raise NotImplementedError()
+
+
+class StochasticDashaClient(StochasticGradientCompressionClient, BaseDashaClient):
+    def __init__(self, stochastic_momentum, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._stochastic_momentum = stochastic_momentum
+    
+    def _stochastic_gradient_step(self, parameters: NDArrays):
+        gradients = self._calculate_mega_stochastic_gradient(parameters)
+        self._gradient_estimator = gradients
+        self._local_gradient_estimator = gradients
+        compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
+        return compressed_gradient
+    
+    def _compression_step(self, parameters: NDArrays):
+        previous_gradients, gradients = self._calculate_stochastic_gradient_in_current_and_previous_parameters(parameters)
+        next_local_gradient_estimator = gradients + (1 - self._stochastic_momentum) * (self._local_gradient_estimator - previous_gradients)
+        momentum = self._get_momentum()
+        compressed_gradient = self._compressor.compress(
+            next_local_gradient_estimator - self._local_gradient_estimator - momentum * (self._gradient_estimator - self._local_gradient_estimator))
+        self._local_gradient_estimator = next_local_gradient_estimator
+        self._gradient_estimator += decompress(compressed_gradient)
+        return compressed_gradient

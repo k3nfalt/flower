@@ -45,6 +45,15 @@ def load_test_dataset(cfg: DictConfig) -> Dataset:
     return dataset
 
 
+def load_random_test_dataset(cfg: DictConfig) -> Dataset:
+    generator = np.random.default_rng(42)
+    features = np.concatenate(((1 + generator.normal(size=100)),
+                               (3 + generator.normal(size=100)))).reshape(1, -1)
+    targets = np.concatenate((torch.ones(100), 3 * torch.ones(100))).reshape(1, -1)
+    dataset = data_utils.TensorDataset(torch.Tensor(features), torch.Tensor(targets))
+    return dataset
+
+
 def load_cifar10(cfg: DictConfig) -> Dataset:
     transform_train = transforms.Compose([
         transforms.ToTensor(),
@@ -62,6 +71,8 @@ def load_dataset(cfg: DictConfig) -> Dataset:
         return load_cifar10(cfg)
     elif cfg.dataset.type == DatasetType.TEST.value:
         return load_test_dataset(cfg)
+    elif cfg.dataset.type == DatasetType.RANDOM_TEST.value:
+        return load_random_test_dataset(cfg)
     else:
         raise RuntimeError("Wrong dataset type")
 
