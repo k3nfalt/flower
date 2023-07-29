@@ -57,20 +57,22 @@ class CompressionClient(fl.client.NumPyClient):
             shift += numel
         self._function.load_state_dict(state_dict, strict=True)
 
+    def _prepare_input(self, dataset, device):
+        self._features, self._targets = dataset[:]
+        self._features = self._features.to(device)
+        self._targets = self._targets.to(device)
+    
+    def _get_current_gradients(self):
+        return np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
+
+
+class GradientCompressionClient(CompressionClient):
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         if config[self._SEND_FULL_GRADIENT]:
             compressed_gradient = self._gradient_step(parameters)
         else:
             compressed_gradient = self._compression_step(parameters)
         return compressed_gradient, len(self._targets), {self.SIZE_OF_COMPRESSED_VECTORS: self._compressor.num_nonzero_components()}
-    
-    def _calculate_gradient(self, parameters: NDArrays):
-        self._set_parameters(parameters)
-        self._function.zero_grad()
-        loss = self._function(self._features, self._targets)
-        loss.backward()
-        gradients = self._get_current_gradients()
-        return gradients
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
@@ -85,15 +87,15 @@ class CompressionClient(fl.client.NumPyClient):
             accuracy = self._function.accuracy(self._features, self._targets)
             metrics[self.ACCURACY] = accuracy
         return float(loss), len(self._targets), metrics
-
-    def _prepare_input(self, dataset, device):
-        self._features, self._targets = dataset[:]
-        self._features = self._features.to(device)
-        self._targets = self._targets.to(device)
     
-    def _get_current_gradients(self):
-        return np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
-        
+    def _calculate_gradient(self, parameters: NDArrays):
+        self._set_parameters(parameters)
+        self._function.zero_grad()
+        loss = self._function(self._features, self._targets)
+        loss.backward()
+        gradients = self._get_current_gradients()
+        return gradients
+    
     def _gradient_step(self):
         raise NotImplementedError()
     
@@ -101,7 +103,7 @@ class CompressionClient(fl.client.NumPyClient):
         raise NotImplementedError()
 
 
-class DashaClient(CompressionClient):
+class DashaClient(GradientCompressionClient):
     def _gradient_step(self, parameters: NDArrays):
         gradients = self._calculate_gradient(parameters)
         self._gradient_estimator = gradients
@@ -125,7 +127,7 @@ class DashaClient(CompressionClient):
         return self._momentum
 
 
-class MarinaClient(CompressionClient):
+class MarinaClient(GradientCompressionClient):
     def _gradient_step(self, parameters: NDArrays):
         gradients = self._calculate_gradient(parameters)
         assert self._gradient_estimator is None
@@ -139,10 +141,3 @@ class MarinaClient(CompressionClient):
         compressed_gradient = self._compressor.compress(gradients - self._local_gradient_estimator)
         self._local_gradient_estimator = gradients
         return compressed_gradient
-
-
-# class StochasticCompressionClient(fl.client.NumPyClient):
-
-
-# class DashaStochasticClient(fl.client.NumPyClient):
-    
