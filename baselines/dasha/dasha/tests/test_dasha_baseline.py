@@ -118,7 +118,6 @@ class ClassificationDummyNet(ClassificationModel):
         self._loss = torch.nn.BCEWithLogitsLoss()
 
     def forward(self, features: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        print(self._bias.data)
         return self._loss(features + self._bias, targets)
 
 
