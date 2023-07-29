@@ -49,16 +49,17 @@ def load_cifar10(cfg: DictConfig) -> Dataset:
     transform_train = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-    target_transform = None
     path_to_dataset = cfg.dataset.path_to_dataset
     trainset = torchvision.datasets.CIFAR10(root=path_to_dataset, train=True, download=False,
-                                            transform=transform_train,
-                                            target_transform=target_transform)
+                                            transform=transform_train)
+    return trainset
 
 
 def load_dataset(cfg: DictConfig) -> Dataset:
     if cfg.dataset.type == DatasetType.LIBSVM.value:
         return load_libsvm_dataset(cfg)
+    elif cfg.dataset.type == DatasetType.CIFAR10.value:
+        return load_cifar10(cfg)
     elif cfg.dataset.type == DatasetType.TEST.value:
         return load_test_dataset(cfg)
     else:
