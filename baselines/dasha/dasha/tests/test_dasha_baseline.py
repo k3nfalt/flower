@@ -108,41 +108,41 @@ class TestDashaBaselineWithRandK(unittest.TestCase):
         self.assertLess(results[-1], 1e-5)
 
 
-# class TestStochasticDashaBaselineWithRandK(unittest.TestCase):
-#     def testBaseline(self) -> None:
-#         step_size = 0.01
-#         num_rounds = 100
+class TestStochasticDashaBaselineWithRandK(unittest.TestCase):
+    def testBaseline(self) -> None:
+        step_size = 0.001
+        num_rounds = 1000
         
-#         cfg = OmegaConf.create({
-#             "dataset": {
-#                 "type": DatasetType.RANDOM_TEST.value,
-#             },
-#             "num_clients": 2,
-#             "num_rounds": num_rounds,
-#             "model": {
-#                 "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
-#             },
-#             "compressor": {
-#                 "_target_": "dasha.compressors.RandKCompressor",
-#                 "number_of_coordinates": 1
-#             },
-#             "method": {
-#                 "strategy": {
-#                     "_target_": "dasha.strategy.DashaAggregator",
-#                     "step_size": step_size
-#                 },
-#                 "client": {
-#                     "_target_": "dasha.client.StochasticDashaClient",
-#                     "device": "cpu",
-#                     "stochastic_momentum": 0.1,
-#                     "mega_batch_size": 10
-#                 }
-#             }
-#         })
-#         results = run_parallel(cfg)
-#         results = [loss for (_, loss) in results.losses_distributed]
-#         self.assertGreater(results[0], 1.0)
-#         self.assertLess(results[-1], 1e-5)
+        cfg = OmegaConf.create({
+            "dataset": {
+                "type": DatasetType.RANDOM_TEST.value,
+            },
+            "num_clients": 2,
+            "num_rounds": num_rounds,
+            "model": {
+                "_target_": "dasha.tests.test_clients.DummyNetTwoParameters",
+            },
+            "compressor": {
+                "_target_": "dasha.compressors.RandKCompressor",
+                "number_of_coordinates": 1
+            },
+            "method": {
+                "strategy": {
+                    "_target_": "dasha.strategy.DashaAggregator",
+                    "step_size": step_size
+                },
+                "client": {
+                    "_target_": "dasha.client.StochasticDashaClient",
+                    "device": "cpu",
+                    "stochastic_momentum": 0.001,
+                    "mega_batch_size": 10
+                }
+            }
+        })
+        results = run_parallel(cfg)
+        results = [loss for (_, loss) in results.losses_distributed]
+        self.assertGreater(results[0], 1.0)
+        self.assertLess(results[-1], 1e-5)
 
 
 class TestMarinaBaselineWithRandK(unittest.TestCase):

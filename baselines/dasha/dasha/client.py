@@ -101,10 +101,10 @@ class GradientCompressionClient(CompressionClient):
         gradients = self._get_current_gradients()
         return gradients
     
-    def _gradient_step(self):
+    def _gradient_step(self, parameters: NDArrays):
         raise NotImplementedError()
     
-    def _compression_step(self):
+    def _compression_step(self, parameters: NDArrays):
         raise NotImplementedError()
 
 
@@ -167,7 +167,7 @@ class StochasticGradientCompressionClient(CompressionClient):
             compressed_gradient = self._stochastic_gradient_step(parameters)
         else:
             compressed_gradient = self._stochastic_compression_step(parameters)
-        return compressed_gradient, len(self._targets), {self.SIZE_OF_COMPRESSED_VECTORS: self._compressor.num_nonzero_components()}
+        return compressed_gradient, self._batch_size, {self.SIZE_OF_COMPRESSED_VECTORS: self._compressor.num_nonzero_components()}
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
@@ -205,15 +205,15 @@ class StochasticGradientCompressionClient(CompressionClient):
             features, targets = next(self._batch_sampler)
             features = features.to(self._device)
             targets = targets.to(self._device)
-            aggregated_gradients += self._calculate_gradients(self._previous_parameters, features, targets)
+            aggregated_gradients += self._calculate_gradients(parameters, features, targets)
         aggregated_gradients /= self._mega_batch_size
         self._previous_parameters = parameters
         return aggregated_gradients
     
-    def _stochastic_gradient_step(self):
+    def _stochastic_gradient_step(self, parameters: NDArrays):
         raise NotImplementedError()
     
-    def _stochastic_compression_step(self):
+    def _stochastic_compression_step(self, parameters: NDArrays):
         raise NotImplementedError()
 
 
@@ -229,7 +229,7 @@ class StochasticDashaClient(StochasticGradientCompressionClient, BaseDashaClient
         compressed_gradient = IdentityUnbiasedCompressor().compress(self._gradient_estimator)
         return compressed_gradient
     
-    def _compression_step(self, parameters: NDArrays):
+    def _stochastic_compression_step(self, parameters: NDArrays):
         previous_gradients, gradients = self._calculate_stochastic_gradient_in_current_and_previous_parameters(parameters)
         next_local_gradient_estimator = gradients + (1 - self._stochastic_momentum) * (self._local_gradient_estimator - previous_gradients)
         momentum = self._get_momentum()
