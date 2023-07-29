@@ -1,5 +1,7 @@
 import unittest
 
+from typing import List
+
 import torch
 import torch.nn as nn
 import torch.utils.data as data_utils
@@ -7,14 +9,15 @@ import numpy as np
 
 from dasha.client import DashaClient
 from dasha.compressors import decompress
+from dasha.models import ClassificationModel
 
 
 _CPU_DEVICE = "cpu"
 
 
-class DummyNet(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
+class DummyNet(ClassificationModel):
+    def __init__(self, input_shape: List[int]) -> None:
+        super().__init__(input_shape)
         self._weight = nn.Parameter(torch.Tensor([2]))
 
     def forward(self, features: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
@@ -23,7 +26,7 @@ class DummyNet(nn.Module):
 
 class TestDashaClient(unittest.TestCase):
     def setUp(self) -> None:
-        self._function = DummyNet()
+        self._function = DummyNet([1])
         self._features = [[1], [2]]
         self._targets = [[1], [2]]
         dataset = data_utils.TensorDataset(torch.Tensor(self._features), 
@@ -63,9 +66,9 @@ class TestDashaClient(unittest.TestCase):
         self.assertAlmostEqual(float(gradients[0]), gradient_actual)
 
 
-class DummyNetTwoParameters(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
+class DummyNetTwoParameters(ClassificationModel):
+    def __init__(self, input_shape: List[int]) -> None:
+        super().__init__(input_shape)
         self._weight_one = nn.Parameter(torch.Tensor([1]))
         self._weight_two = nn.Parameter(torch.Tensor([3]))
 
@@ -75,7 +78,7 @@ class DummyNetTwoParameters(nn.Module):
 
 class TestDashaClientWithTwoParameters(unittest.TestCase):
     def setUp(self) -> None:
-        self._function = DummyNetTwoParameters()
+        self._function = DummyNetTwoParameters([1])
         self._features = [[1], [2]]
         self._targets = [[1], [2]]
         dataset = data_utils.TensorDataset(torch.Tensor(self._features), 

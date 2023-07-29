@@ -28,6 +28,12 @@ def _generate_seed(generator):
     return generator.integers(10e9)
 
 
+def _get_dataset_input_shape(dataset):
+    assert len(dataset) > 0
+    sample_features, _ = dataset[0]
+    return list(sample_features.shape)
+
+
 def _parallel_run(params: Tuple[DictConfig, int, int]) -> None:
     try:
         cfg, index_parallel, seed = params
@@ -41,7 +47,7 @@ def _parallel_run(params: Tuple[DictConfig, int, int]) -> None:
             dataset = dasha.dataset.load_dataset(cfg)
             datasets = dasha.dataset.random_split(dataset, cfg.num_clients)
             local_dataset = datasets[index_client]
-            function = instantiate(cfg.model)
+            function = instantiate(cfg.model, input_shape=_get_dataset_input_shape(dataset))
             compressor = instantiate(cfg.compressor, seed=seed)
             client_instance = instantiate(cfg.method.client, 
                                           function=function,

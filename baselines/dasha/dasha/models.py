@@ -1,10 +1,7 @@
-"""Define our models, and training and eval functions.
+from abc import ABC, abstractmethod
 
-If your model is 100% off-the-shelf (e.g. directly from torchvision without requiring
-modifications) you might be better off instantiating your  model directly from the Hydra
-config. In this way, swapping your model for  another one can be done without changing
-the python code at all
-"""
+from typing import List
+
 import numpy as np
 
 import torch
@@ -12,12 +9,12 @@ import torch.nn as nn
 
 
 class ClassificationModel(nn.Module):
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError()
+    def __init__(self, input_shape: List[int], *args, **kwargs):
+        super(ClassificationModel, self).__init__()
     
-    def accuracy(self, input: torch.Tensor, target: torch.Tensor) -> float:
-        raise NotImplementedError()
-
+    @abstractmethod
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        return
 
 class LinearNet(nn.Module):
     def __init__(self, num_input_features: int, num_output_features: int, init_with_zeros: bool = False) -> None:
@@ -50,8 +47,10 @@ class NonConvexLoss(nn.Module):
 
 
 class LinearNetWithNonConvexLoss(ClassificationModel):
-    def __init__(self, num_input_features: int, init_with_zeros: bool = False) -> None:
-        super().__init__()
+    def __init__(self, input_shape: List[int], init_with_zeros: bool = False) -> None:
+        super().__init__(input_shape)
+        assert len(input_shape) == 1
+        num_input_features = input_shape[0]
         self._net = LinearNet(num_input_features, num_output_features=1, init_with_zeros=init_with_zeros)
         self._loss = NonConvexLoss()
     

@@ -9,7 +9,7 @@ class TestSmokeLinearNetWithNonConvexLoss(unittest.TestCase):
     def test(self) -> None:
         features = torch.rand(3, 42)
         targets = torch.Tensor([1, -1, 1])
-        model = LinearNetWithNonConvexLoss(42)
+        model = LinearNetWithNonConvexLoss([42])
         loss = model(features, targets)
         loss.backward()
         parameters = list(model.parameters())

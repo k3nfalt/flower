@@ -14,6 +14,7 @@ from flwr.common.typing import NDArrays, Scalar
 from logging import DEBUG
 
 from dasha.compressors import UnbiasedBaseCompressor, IdentityUnbiasedCompressor, decompress
+from dasha.models import ClassificationModel
 
 
 class CompressionClient(fl.client.NumPyClient):
@@ -22,7 +23,7 @@ class CompressionClient(fl.client.NumPyClient):
     GRADIENT = 'gradient'
     def __init__(
         self,
-        function: torch.nn.Module,
+        function: ClassificationModel,
         dataset: Dataset,
         device: torch.device,
         compressor: UnbiasedBaseCompressor = IdentityUnbiasedCompressor(),

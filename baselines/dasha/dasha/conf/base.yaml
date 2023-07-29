@@ -8,12 +8,11 @@ client_resources:
 
 model:
   _target_: dasha.models.LinearNetWithNonConvexLoss
-  num_input_features: 112
   init_with_zeros: True
 
 compressor:
   _target_: dasha.compressors.RandKCompressor
-  number_of_coordinates: 10
+  number_of_coordinates: ???
 
 defaults:
   - dataset: libsvm

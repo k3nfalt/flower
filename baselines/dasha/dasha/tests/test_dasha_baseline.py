@@ -20,7 +20,7 @@ TESTDATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datase
 
 
 def gradient_descent(step_size, num_rounds):
-    dummy_net = DummyNetTwoParameters()
+    dummy_net = DummyNetTwoParameters([1])
     dataset = load_test_dataset(
         OmegaConf.create({
             "dataset": {
