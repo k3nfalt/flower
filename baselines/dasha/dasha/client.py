@@ -150,9 +150,11 @@ class MarinaClient(GradientCompressionClient):
 
 class StochasticGradientCompressionClient(CompressionClient):
     _LARGE_NUMBER = 10**12
-    def __init__(self, *args, batch_size=1, num_workers=4, **kwargs):
+    def __init__(self, *args, mega_batch_size=None, batch_size=1, num_workers=4, **kwargs):
         super().__init__(*args, **kwargs)
         self._batch_size = batch_size
+        assert mega_batch_size is not None
+        self._mega_batch_size = mega_batch_size
         self._previous_parameters = None
         self._batch_sampler = iter(torch.utils.data.DataLoader(
             self._dataset, batch_size=self._batch_size, num_workers=num_workers, 
@@ -168,21 +170,43 @@ class StochasticGradientCompressionClient(CompressionClient):
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
         self._set_parameters(parameters)
-        # loss = self._function(self._features, self._targets)
+        features, targets = next(self._batch_sampler)
+        features = features.to(self._device)
+        targets = targets.to(self._device)
+        loss = self._function(features, targets)
         metrics = {}
         if self._evaluate_accuracy:
-            accuracy = self._function.accuracy(self._features, self._targets)
+            accuracy = self._function.accuracy(features, targets)
             metrics[self.ACCURACY] = accuracy
-        return float(loss), len(self._targets), metrics
+        return float(loss), len(targets), metrics
     
-    def _calculate_stochastic_gradient(self, parameters: NDArrays):
-        features, labels = next(self._batch_sampler)
+    def _calculate_gradients(self, parameters, features, targets):
         self._set_parameters(parameters)
         self._function.zero_grad()
-        loss = self._function(self._features, self._targets)
+        loss = self._function(features, targets)
         loss.backward()
         gradients = self._get_current_gradients()
         return gradients
+    
+    def _calculate_stochastic_gradient_in_current_and_previous_parameters(self, parameters: NDArrays):
+        features, targets = next(self._batch_sampler)
+        features = features.to(self._device)
+        targets = targets.to(self._device)
+        previous_gradients = self._calculate_gradients(self._previous_parameters, features, targets)
+        gradients = self._calculate_gradients(parameters, features, targets)
+        self._previous_parameters = parameters
+        return previous_gradients, gradients
+    
+    def _calculate_mega_stochastic_gradient(self, parameters: NDArrays):
+        aggregated_gradients = 0
+        for _ in range(self._mega_batch_size):
+            features, targets = next(self._batch_sampler)
+            features = features.to(self._device)
+            targets = targets.to(self._device)
+            aggregated_gradients += self._calculate_gradients(self._previous_parameters, features, targets)
+        aggregated_gradients /= self._mega_batch_size
+        self._previous_parameters = parameters
+        return aggregated_gradients
     
     def _stochastic_gradient_step(self):
         raise NotImplementedError()
