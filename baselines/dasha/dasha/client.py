@@ -44,7 +44,7 @@ class CompressionClient(fl.client.NumPyClient):
         parameters = [val.detach().cpu().numpy().flatten() for _, val in self._function.named_parameters()]
         return [np.concatenate(parameters)]
 
-    def set_parameters(self, parameters: NDArrays) -> None:
+    def _set_parameters(self, parameters: NDArrays) -> None:
         assert len(parameters) == 1
         parameters = parameters[0]
         self._compressor.set_dim(len(parameters))
@@ -58,7 +58,7 @@ class CompressionClient(fl.client.NumPyClient):
         self._function.load_state_dict(state_dict, strict=True)
 
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
-        self.set_parameters(parameters)
+        self._set_parameters(parameters)
         self._function.zero_grad()
         loss = self._function(self._features, self._targets)
         loss.backward()
@@ -77,7 +77,7 @@ class CompressionClient(fl.client.NumPyClient):
 
     def evaluate(
         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
-        self.set_parameters(parameters)
+        self._set_parameters(parameters)
         loss = self._function(self._features, self._targets)
         metrics = {}
         if self._send_gradient:

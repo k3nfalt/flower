@@ -43,7 +43,7 @@ class TestDashaClient(unittest.TestCase):
     def testSetParameters(self) -> None:
         parameter = 3.0
         parameters = [np.array([parameter])]
-        self._client.set_parameters(parameters)
+        self._client._set_parameters(parameters)
         self.assertAlmostEqual(float(self._function._weight.detach().numpy()), parameter)
 
     def testEvaluate(self) -> None:
@@ -96,7 +96,7 @@ class TestDashaClientWithTwoParameters(unittest.TestCase):
     def testSetParameters(self) -> None:
         parameter = [3.0, 10.]
         parameters = [np.array(parameter)]
-        self._client.set_parameters(parameters)
+        self._client._set_parameters(parameters)
         self.assertAlmostEqual(float(self._function._weight_one.detach().numpy()), parameter[0])
         self.assertAlmostEqual(float(self._function._weight_two.detach().numpy()), parameter[1])
 
