@@ -28,8 +28,7 @@ class CompressionClient(fl.client.NumPyClient):
         dataset: Dataset,
         device: torch.device,
         compressor: Optional[UnbiasedBaseCompressor] = None,
-        evaluate_accuracy=False,
-        send_gradient=False
+        evaluate_accuracy=False
     ):
         self._function = function
         self._compressor = compressor if compressor is not None else IdentityUnbiasedCompressor()
@@ -37,7 +36,6 @@ class CompressionClient(fl.client.NumPyClient):
         self._gradient_estimator = None
         self._momentum = None
         self._evaluate_accuracy = evaluate_accuracy
-        self._send_gradient = send_gradient
         self._prepare_input(dataset, device)
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
@@ -67,6 +65,18 @@ class CompressionClient(fl.client.NumPyClient):
 
 
 class GradientCompressionClient(CompressionClient):
+    def __init__(
+        self,
+        function: ClassificationModel,
+        dataset: Dataset,
+        device: torch.device,
+        compressor: Optional[UnbiasedBaseCompressor] = None,
+        evaluate_accuracy=False,
+        send_gradient=False
+    ):
+        super().__init__(function, dataset, device, compressor, evaluate_accuracy)
+        self._send_gradient = send_gradient
+    
     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
         if config[self._SEND_FULL_GRADIENT]:
             compressed_gradient = self._gradient_step(parameters)
@@ -141,3 +151,36 @@ class MarinaClient(GradientCompressionClient):
         compressed_gradient = self._compressor.compress(gradients - self._local_gradient_estimator)
         self._local_gradient_estimator = gradients
         return compressed_gradient
+
+
+# class StochasticGradientCompressionClient(CompressionClient):
+#     def fit(self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[NDArrays, int, Dict]:
+#         if config[self._SEND_FULL_GRADIENT]:
+#             compressed_gradient = self._stochastic_gradient_step(parameters)
+#         else:
+#             compressed_gradient = self._stochastic_compression_step(parameters)
+#         return compressed_gradient, len(self._targets), {self.SIZE_OF_COMPRESSED_VECTORS: self._compressor.num_nonzero_components()}
+
+#     def evaluate(
+#         self, parameters: NDArrays, config: Dict[str, Scalar]) -> Tuple[float, int, Dict]:
+#         self._set_parameters(parameters)
+#         # loss = self._function(self._features, self._targets)
+#         metrics = {}
+#         if self._evaluate_accuracy:
+#             accuracy = self._function.accuracy(self._features, self._targets)
+#             metrics[self.ACCURACY] = accuracy
+#         return float(loss), len(self._targets), metrics
+    
+#     def _calculate_stochastic_gradient(self, parameters: NDArrays):
+#         self._set_parameters(parameters)
+#         self._function.zero_grad()
+#         loss = self._function(self._features, self._targets)
+#         loss.backward()
+#         gradients = self._get_current_gradients()
+#         return gradients
+    
+#     def _stochastic_gradient_step(self):
+#         raise NotImplementedError()
+    
+#     def _stochastic_compression_step(self):
+        # raise NotImplementedError()
