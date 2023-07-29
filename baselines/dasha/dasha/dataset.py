@@ -3,6 +3,9 @@ from enum import Enum
 import torch
 from torch.utils.data import Dataset
 import torch.utils.data as data_utils
+import torchvision
+import torchvision.transforms as transforms
+
 from omegaconf import DictConfig
 from sklearn.datasets import load_svmlight_file
 import numpy as np
@@ -40,6 +43,17 @@ def load_test_dataset(cfg: DictConfig) -> Dataset:
     targets = [[1], [2]]
     dataset = data_utils.TensorDataset(torch.Tensor(features), torch.Tensor(targets))
     return dataset
+
+
+def load_cifar10(cfg: DictConfig) -> Dataset:
+    transform_train = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+    target_transform = None
+    path_to_dataset = cfg.dataset.path_to_dataset
+    trainset = torchvision.datasets.CIFAR10(root=path_to_dataset, train=True, download=False,
+                                            transform=transform_train,
+                                            target_transform=target_transform)
 
 
 def load_dataset(cfg: DictConfig) -> Dataset:
