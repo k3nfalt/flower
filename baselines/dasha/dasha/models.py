@@ -6,6 +6,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+from torchvision.models import resnet18
 
 
 class ClassificationModel(nn.Module):
@@ -63,4 +64,22 @@ class LinearNetWithNonConvexLoss(ClassificationModel):
         logits = self._net(input).numpy().flatten()
         target = target.numpy()
         predictions = (logits >= 0.0).astype(np.int32)
+        return np.sum(predictions == target) / len(target)
+
+
+class ResNet18WithLogisticLoss(ClassificationModel):
+    def __init__(self, input_shape: List[int], num_classes: int = 10) -> None:
+        super().__init__(input_shape)
+        self._net = resnet18(num_classes=num_classes)
+        self._loss = torch.nn.CrossEntropyLoss()
+    
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        logits = self._net(input)
+        return self._loss(logits, target.long())
+    
+    @torch.no_grad()
+    def accuracy(self, input: torch.Tensor, target: torch.Tensor) -> float:
+        logits = self._net(input).numpy()
+        target = target.numpy()
+        predictions = np.argmax(logits, axis=-1)
         return np.sum(predictions == target) / len(target)

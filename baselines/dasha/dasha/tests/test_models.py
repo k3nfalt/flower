@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from dasha.models import LinearNetWithNonConvexLoss
+from dasha.models import LinearNetWithNonConvexLoss, ResNet18WithLogisticLoss
 
 class TestSmokeLinearNetWithNonConvexLoss(unittest.TestCase):
 
@@ -18,6 +18,16 @@ class TestSmokeLinearNetWithNonConvexLoss(unittest.TestCase):
         accuracy = model.accuracy(features, targets)
         self.assertTrue(accuracy >= 0 - 1e-2 and accuracy <= 1.0 + 1e-2)
 
+
+class TestSmokeResNet18WithLogisticLoss(unittest.TestCase):
+
+    def test(self) -> None:
+        features = torch.rand(3, 3, 224, 224)
+        targets = torch.Tensor([0, 8, 6])
+        model = ResNet18WithLogisticLoss(features[0].shape)
+        loss = model(features, targets)
+        loss.backward()
+        model.accuracy(features, targets)
 
 if __name__ == "__main__":
     unittest.main()
