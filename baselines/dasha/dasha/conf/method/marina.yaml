@@ -7,3 +7,4 @@ client:
   device: cpu
   evaluate_accuracy: false
   send_gradient: false
+  strict_load: true
