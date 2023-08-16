@@ -14,3 +14,7 @@ defaults:
   - dataset: libsvm
   - method: dasha
   - model: linear_net_with_non_convex_loss
+
+hydra:
+  run:
+    dir: ${oc.env:HOME}/hydra_outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
