@@ -79,7 +79,7 @@ class ResNet18WithLogisticLoss(ClassificationModel):
     
     @torch.no_grad()
     def accuracy(self, input: torch.Tensor, target: torch.Tensor) -> float:
-        logits = self._net(input).numpy()
-        target = target.numpy()
+        logits = self._net(input).cpu().numpy()
+        target = target.cpu().numpy()
         predictions = np.argmax(logits, axis=-1)
         return np.sum(predictions == target) / len(target)

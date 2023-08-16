@@ -31,7 +31,8 @@ class CompressionClient(fl.client.NumPyClient):
         evaluate_accuracy=False,
         strict_load=True
     ):
-        self._function = function
+        self._function = function.to(device)
+        self._function.train()
         self._compressor = compressor if compressor is not None else IdentityUnbiasedCompressor()
         self._local_gradient_estimator = None
         self._gradient_estimator = None
