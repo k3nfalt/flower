@@ -6,10 +6,6 @@ client_resources:
   num_cpus: 2
   num_gpus: 0.0
 
-model:
-  _target_: dasha.models.LinearNetWithNonConvexLoss
-  init_with_zeros: True
-
 compressor:
   _target_: dasha.compressors.RandKCompressor
   number_of_coordinates: ???
@@ -17,3 +13,4 @@ compressor:
 defaults:
   - dataset: libsvm
   - method: dasha
+  - model: linear_net_with_non_convex_loss

@@ -28,7 +28,8 @@ class CompressionClient(fl.client.NumPyClient):
         dataset: Dataset,
         device: torch.device,
         compressor: Optional[UnbiasedBaseCompressor] = None,
-        evaluate_accuracy=False
+        evaluate_accuracy=False,
+        strict_load=True
     ):
         self._function = function
         self._compressor = compressor if compressor is not None else IdentityUnbiasedCompressor()
@@ -38,6 +39,7 @@ class CompressionClient(fl.client.NumPyClient):
         self._evaluate_accuracy = evaluate_accuracy
         self._dataset = dataset
         self._device = device
+        self._strict_load = strict_load
 
     def get_parameters(self, config: Dict[str, Scalar]) -> NDArrays:
         parameters = [val.detach().cpu().numpy().flatten() for _, val in self._function.named_parameters()]
@@ -54,7 +56,10 @@ class CompressionClient(fl.client.NumPyClient):
             parameter = parameters[shift:shift + numel].reshape(parameter_layer.shape)
             state_dict[k] = torch.Tensor(parameter)
             shift += numel
-        self._function.load_state_dict(state_dict, strict=True)
+        missing_keys, unexpected_keys = self._function.load_state_dict(state_dict, strict=False)
+        assert len(unexpected_keys) == 0
+        if self._strict_load:
+            assert len(missing_keys) == 0
     
     def _get_current_gradients(self):
         return np.concatenate([val.grad.cpu().numpy().flatten() for val in self._function.parameters()])
