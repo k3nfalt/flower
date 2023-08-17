@@ -1,10 +1,7 @@
 num_clients: 5
 num_rounds: 10000
 save_path: !!null
-
-client_resources:
-  num_cpus: 2
-  num_gpus: 0.0
+local_address: !!null
 
 compressor:
   _target_: dasha.compressors.RandKCompressor

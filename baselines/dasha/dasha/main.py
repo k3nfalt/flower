@@ -52,9 +52,10 @@ def save_history(history, cfg: DictConfig):
 
 def _parallel_run(cfg: DictConfig, index_parallel: int, seed: int, queue: multiprocessing.Queue) -> None:
     try:
+        local_address = cfg.local_address if cfg.local_address is not None else LOCAL_ADDRESS
         if index_parallel == 0:
             strategy_instance = instantiate(cfg.method.strategy, num_clients=cfg.num_clients)
-            history = fl.server.start_server(server_address=LOCAL_ADDRESS, 
+            history = fl.server.start_server(server_address=local_address, 
                                              config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
                                              strategy=strategy_instance)
             queue.put(history)
@@ -71,7 +72,7 @@ def _parallel_run(cfg: DictConfig, index_parallel: int, seed: int, queue: multip
                                           compressor=compressor)
             # TODO: Fix it
             time.sleep(1.0)
-            fl.client.start_numpy_client(server_address=LOCAL_ADDRESS, 
+            fl.client.start_numpy_client(server_address=local_address, 
                                          client=client_instance)
     except Exception as ex:
         print(traceback.format_exc())
