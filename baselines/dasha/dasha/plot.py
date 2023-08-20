@@ -51,11 +51,13 @@ if __name__ == "__main__":
         type=str,
         nargs="+",
         help="Paths to the results of the experiments",
+        required=True
     )
     parser.add_argument(
         "--output_path",
         type=str,
         help="Path to a saved plot",
+        required=True
     )
     parser.add_argument(
         "--metric",
