@@ -2,7 +2,7 @@
 title: DASHA: Distributed Nonconvex Optimization with Communication Compression and Optimal Oracle Complexity
 url: https://openreview.net/forum?id=VA1YpcNr7ul
 labels: [compression, heterogeneous setting, variance reduction, image classification]
-dataset: [cifar10, mushrooms, libsvm]
+dataset: [cifar10, mushroom, libsvm]
 ---
 
 # DASHA: Distributed Nonconvex Optimization with Communication Compression and Optimal Oracle Complexity
@@ -20,22 +20,29 @@ dataset: [cifar10, mushrooms, libsvm]
 
 ****What’s implemented:**** The code in this directory implements the experiments from the DASHA paper.
 
-****Datasets:**** Mushrooms from LIBSVM and CIFAR10 from PyTorch's Torchvision
+****Datasets:**** Mushroom from LIBSVM and CIFAR10 from PyTorch's Torchvision
 
-****Hardware Setup:**** These experiments were run on a desktop machine with 64 CPU cores. Any machine with 1 CPU would be able to run this code with the mushrooms dataset. The experiments with CIFAR10 would require slightly more CPU resources (e.g., 4 cores would be sufficient) and 1 GPU with CUDA.
+****Hardware Setup:**** These experiments were run on a desktop machine with 64 CPU cores. Any machine with 1 CPU would be able to run this code with the mushroom dataset. The experiments with CIFAR10 would require slightly more CPU resources (e.g., 4 cores would be sufficient) and 1 GPU with CUDA.
 
 ****Contributors:**** Alexander Tyurin (https://github.com/k3nfalt)
 
 
 ## Experimental Setup
 
-****Task:**** :warning: *_what’s the primary task that is being federated? (e.g. image classification, next-word prediction). If you have experiments for several, please list them_*
+****Task:**** Image Classification and Linear Regression
 
-****Model:**** :warning: *_provide details about the model you used in your experiments (if more than use a list). If your model is small, describing it as a table would be :100:. Some FL methods do not use an off-the-shelve model (e.g. ResNet18) instead they create your own. If this is your case, please provide a summary here and give pointers to where in the paper (e.g. Appendix B.4) is detailed._*
+****Model:**** This baseline implements two models:
+* A logistic regression model with a nonconvex loss from the DASHA paper (Section A.1).
+* A neural network with the cross entropy loss (Section A.4).
 
-****Dataset:**** :warning: *_Earlier you listed already the datasets that your baseline uses. Now you should include a breakdown of the details about each of them. Please include information about: how the dataset is partitioned (e.g. LDA with alpha 0.1 as default and all clients have the same number of training examples; or each client gets assigned a different number of samples following a power-law distribution with each client only instances of 2 classes)? if  your dataset is naturally partitioned just state “naturally partitioned”; how many partitions there are (i.e. how many clients)? Please include this an all information relevant about the dataset and its partitioning into a table._*
+**Dataset:** This baseline only includes the MNIST dataset. By default, the datasets are partitioned randomly between $n$ clients:
 
-****Training Hyperparameters:**** :warning: *_Include a table with all the main hyperparameters in your baseline. Please show them with their default value._*
+| Dataset | #classes | partitioning method |
+| :------ | :---: | :---: |
+| mushroom | 2 | random |
+| cifar10 | 10 | random |
+
+****Training Hyperparameters:**** In all experiments, we take parameters of algorithms predicted by the theory, except for the step sizes. In the case of the mushroom's experiments, the step sizes are fine-tuned from the set of powers of two $\{2^i\,|\,i \in [-10, 10]\}.$ In the case of cifar10's experiments, the step sizes are fixed to $0.01.$
 
 
 ## Environment Setup
