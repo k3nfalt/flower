@@ -1,6 +1,6 @@
 type: libsvm
 
-path_to_dataset: ???
+path_to_dataset: !!null
 dataset_name: mushrooms
 
 _dataset_urls:

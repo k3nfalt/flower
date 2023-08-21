@@ -2,7 +2,7 @@
 title: DASHA: Distributed Nonconvex Optimization with Communication Compression and Optimal Oracle Complexity
 url: https://openreview.net/forum?id=VA1YpcNr7ul
 labels: [compression, heterogeneous setting, variance reduction, image classification]
-dataset: [cifar10, mushroom, libsvm]
+dataset: [cifar10, mushrooms, libsvm]
 ---
 
 # DASHA: Distributed Nonconvex Optimization with Communication Compression and Optimal Oracle Complexity
@@ -20,9 +20,9 @@ dataset: [cifar10, mushroom, libsvm]
 
 ****What’s implemented:**** The code in this directory implements the experiments from the DASHA paper.
 
-****Datasets:**** Mushroom from LIBSVM and CIFAR10 from PyTorch's Torchvision
+****Datasets:**** Mushrooms from LIBSVM and CIFAR10 from PyTorch's Torchvision
 
-****Hardware Setup:**** These experiments were run on a desktop machine with 64 CPU cores. Any machine with 1 CPU would be able to run this code with the mushroom dataset. The experiments with CIFAR10 would require slightly more CPU resources (e.g., 4 cores would be sufficient) and 1 GPU with CUDA.
+****Hardware Setup:**** These experiments were run on a desktop machine with 64 CPU cores. Any machine with 1 CPU would be able to run this code with the mushrooms dataset. The experiments with CIFAR10 would require slightly more CPU resources (e.g., 4 cores would be sufficient) and 1 GPU with CUDA.
 
 ****Contributors:**** Alexander Tyurin (https://github.com/k3nfalt)
 
@@ -39,10 +39,10 @@ dataset: [cifar10, mushroom, libsvm]
 
 | Dataset | #classes | partitioning method |
 | :------ | :---: | :---: |
-| mushroom | 2 | random |
+| mushrooms | 2 | random |
 | cifar10 | 10 | random |
 
-****Training Hyperparameters:**** In all experiments, we take parameters of algorithms predicted by the theory, except for the step sizes. In the case of the mushroom's experiments, the step sizes are fine-tuned from the set of powers of two $\{2^i\,|\,i \in [-10, 10]\}.$ In the case of cifar10's experiments, the step sizes are fixed to $0.01.$
+****Training Hyperparameters:**** In all experiments, we take parameters of algorithms predicted by the theory, except for the step sizes. In the case of the mushrooms's experiments, the step sizes are fine-tuned from the set of powers of two $\{2^i\,|\,i \in [-10, 10]\}.$ In the case of cifar10's experiments, the step sizes are fixed to $0.01.$
 
 
 ## Environment Setup

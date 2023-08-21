@@ -5,7 +5,7 @@ local_address: !!null
 
 compressor:
   _target_: dasha.compressors.RandKCompressor
-  number_of_coordinates: ???
+  number_of_coordinates: 1
 
 defaults:
   - dataset: libsvm
