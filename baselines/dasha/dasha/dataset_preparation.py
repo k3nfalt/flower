@@ -59,8 +59,10 @@ def find_pre_downloaded_or_download_dataset(cfg: DictConfig) -> None:
     """
     if cfg.dataset.path_to_dataset is None:
         path_to_dataset = tempfile.mkdtemp()
-        print(f"The parameter cfg.dataset.path_to_dataset is not specified. Creating a temporary directory in {path_to_dataset}.")
+        print(f"The parameter cfg.dataset.path_to_dataset is not specified. Creating the temporary directory {path_to_dataset}.")
         cfg.dataset.path_to_dataset = path_to_dataset
+    else:
+        assert os.path.isdir(cfg.dataset.path_to_dataset), f"The folder {cfg.dataset.path_to_dataset} does not exists"
     if cfg.dataset.type == DatasetType.LIBSVM.value:
         _prepare_libsvm(cfg.dataset.path_to_dataset, cfg.dataset.dataset_name, cfg.dataset._dataset_urls)
     elif cfg.dataset.type == DatasetType.CIFAR10.value:

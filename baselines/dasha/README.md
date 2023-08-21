@@ -52,7 +52,7 @@ To construct the Python environment follow these steps:
 ```bash
 # Install the base Poetry environment
 # By default, it is assumed that the user has Python 3.8 and CUDA 11.8. 
-# If you have a different setup, then change the "torch" and "torchvision" lines in [tool.poetry.dependencies] to the relevant system setup.
+# If you have a different setup, then change the "torch" and "torchvision" lines in [tool.poetry.dependencies].
 poetry install
 
 # Activate the environment
@@ -61,6 +61,24 @@ poetry shell
 
 
 ## Running the Experiments
+
+To run this FedProx with MNIST baseline, first ensure you have activated your Poetry environment (execute `poetry shell` from this directory), then:
+
+```bash
+python -m dasha.main # this will run using the default settings in `dasha/conf`
+
+# you can override settings directly from the command line
+mkdir -p $HOME/.flower/tmp_dataset
+python -m dasha.main dataset.path_to_dataset=$HOME/.flower/tmp_dataset method.strategy.step_size=0.5 compressor.number_of_coordinates=10
+
+# if you run this baseline with a larger model, you might want to use the GPU (not used by default).
+python -m fedprox.main server_device=cuda client_resources.num_gpus=0.25
+```
+
+To run using MARINA by Gorbunov et al. (2020) (previous baseline):
+```bash
+python -m dasha.main method=marina
+```
 
 :warning: _Provide instructions on the steps to follow to run all the experiments._
 ```bash  
