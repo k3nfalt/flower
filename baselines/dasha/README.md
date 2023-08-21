@@ -70,8 +70,8 @@ python -m dasha.main # this will run using the default settings in `dasha/conf`
 # you can override settings directly from the command line
 # The following commands create a new directory for the dataset, and then it runs an experiment with the step size 0.5.
 # Instead of the full, non-compressed vectors, each node sends a compressed vector with only 10 coordinates.
-mkdir -p $HOME/.flower/tmp_dataset
-python -m dasha.main dataset.path_to_dataset=$HOME/.flower/tmp_dataset method.strategy.step_size=0.5 compressor.number_of_coordinates=10
+mkdir -p $HOME/.flower/dataset
+python -m dasha.main dataset.path_to_dataset=$HOME/.flower/dataset method.strategy.step_size=0.5 compressor.number_of_coordinates=10
 
 # if you run this baseline with a larger model, you might want to use the GPU (not used by default).
 python -m dasha.main method.client.device=cuda
@@ -86,10 +86,11 @@ python -m dasha.main method=marina
 ## Expected Results
 ### Small-Scale Experiments
 
-With the following command we run both DASHA and MARINA methods while iterating through different values of `step size`. Other parameters are the same as in the original paper.
+With the following command we run both DASHA and MARINA methods while iterating through different values of `step size`. Other parameters are the same as in the original paper. In the following command, we also ask the clients to send the full gradients to evaluate the norm of gradients metric.
 
 ```bash
-python -m dasha.main --multirun method=dasha,marina compressor.number_of_coordinates=10 method.strategy.step_size=0.25,0.5,1.0 method.client.send_gradient=true
+mkdir -p $HOME/.flower/dataset
+mkdir -p $HOME/.flower/results
+python -m dasha.main --multirun method=dasha,marina compressor.number_of_coordinates=10 method.strategy.step_size=0.25,0.5,1.0 method.client.send_gradient=true dataset.path_to_dataset=$HOME/.flower/dataset save_path=$HOME/.flower/results
 
-# add more commands + plots for additional experiments.
 ```
