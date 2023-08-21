@@ -48,6 +48,7 @@ class TestDashaBaseline(unittest.TestCase):
         reference_results = gradient_descent(step_size, num_rounds)
         
         cfg = OmegaConf.create({
+            "local_address": None,
             "dataset": {
                 "type": DatasetType.TEST.value,
             },
@@ -82,6 +83,7 @@ class TestDashaBaselineWithRandK(unittest.TestCase):
         num_rounds = 100
         
         cfg = OmegaConf.create({
+            "local_address": None,
             "dataset": {
                 "type": DatasetType.TEST.value,
             },
@@ -127,6 +129,7 @@ class TestMomentumHelpsInStochasticDashaBaselineWithRandK(unittest.TestCase):
         num_rounds = 1000
         
         params = {
+            "local_address": None,
             "dataset": {
                 "type": DatasetType.RANDOM_TEST.value,
             },
@@ -171,6 +174,7 @@ class TestMegaBatchHelpsInStochasticMarinaBaselineWithRandK(unittest.TestCase):
         num_rounds = 1000
         
         params = {
+            "local_address": None,
             "dataset": {
                 "type": DatasetType.RANDOM_TEST.value,
             },
@@ -215,6 +219,7 @@ class TestMarinaBaselineWithRandK(unittest.TestCase):
         number_of_coordinates = 1
         
         cfg = OmegaConf.create({
+            "local_address": None,
             "dataset": {
                 "type": DatasetType.TEST.value,
             },
