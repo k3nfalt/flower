@@ -40,9 +40,9 @@ dataset: [cifar10, mushrooms, libsvm]
 | Dataset | #classes | partitioning method |
 | :------ | :---: | :---: |
 | mushrooms | 2 | random |
-| cifar10 | 10 | random |
+| CIFAR10 | 10 | random |
 
-****Training Hyperparameters:**** In all experiments, we take parameters of algorithms predicted by the theory, except for the step sizes. In the case of the mushrooms's experiments, the step sizes are fine-tuned from the set of powers of two $\{0.25,0.5,1.0\}.$ In the case of cifar10's experiments, the step sizes are fixed to $0.01.$
+****Training Hyperparameters:**** In all experiments, we take parameters of algorithms predicted by the theory, except for the step sizes. In the case of the mushrooms's experiments, the step sizes are fine-tuned from the set of powers of two $\{0.25,0.5,1.0\}.$ In the case of CIFAR10's experiments, the step sizes are fixed to $0.01.$
 
 
 ## Environment Setup
@@ -94,4 +94,16 @@ mkdir -p $HOME/.flower/dataset
 python -m dasha.main --multirun method=dasha,marina compressor.number_of_coordinates=10 method.strategy.step_size=0.25,0.5,1.0 method.client.send_gradient=true dataset.path_to_dataset=$HOME/.flower/dataset save_path=$HOME/.flower/results
 # Plot results
 python -m dasha.plot --input_paths $HOME/.flower/results --output_path $HOME/.flower/plot.pdf --metric squared_gradient_norm
+```
+
+### Large-Scale Experiments
+
+In the following experiments, we compare the performance of DASHA and MARINA on the CIFAR10 dataset.
+```bash
+mkdir -p $HOME/.flower/dataset
+# Run experiments
+python -m dasha.main ???
+python -m dasha.main ???
+# Plot results
+python -m dasha.plot ???
 ```
