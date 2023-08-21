@@ -14,10 +14,10 @@ def plot(args) -> None:
     fig, axs = plt.subplots(nrows=1, ncols=1, sharex="row")
     paths = []
     for path in args.input_paths:
-        if os.path.exists(os.path.join(path, "multirun.yaml")):
+        if not os.path.exists(os.path.join(path, "history")):
             local_folders = os.listdir(path)
             for folder in local_folders:
-                if folder != "multirun.yaml":
+                if os.path.isdir(os.path.join(path, folder)):
                     paths.append(os.path.join(path, folder))
         else:
             paths.append(path)
