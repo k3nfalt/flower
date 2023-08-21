@@ -90,6 +90,8 @@ With the following command we run both DASHA and MARINA methods while iterating 
 
 ```bash
 mkdir -p $HOME/.flower/dataset
+# Run experiments
 python -m dasha.main --multirun method=dasha,marina compressor.number_of_coordinates=10 method.strategy.step_size=0.25,0.5,1.0 method.client.send_gradient=true dataset.path_to_dataset=$HOME/.flower/dataset save_path=$HOME/.flower/results
-
+# Plot results
+python -m dasha.plot --input_paths $HOME/.flower/results --output_path $HOME/.flower/plot.pdf --metric squared_gradient_norm
 ```

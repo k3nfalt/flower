@@ -36,7 +36,7 @@ def _get_dataset_input_shape(dataset):
     return list(sample_features.shape)
 
 
-def save_history(history, cfg: DictConfig):
+def generate_save_path(cfg: DictConfig) -> None:
     if cfg.save_path is not None:
         if HydraConfig.get().mode == hydra.types.RunMode.MULTIRUN:
             if HydraConfig.get().job.id == '0':
@@ -50,6 +50,10 @@ def save_history(history, cfg: DictConfig):
             save_path = cfg.save_path
     else:
         save_path = HydraConfig.get().runtime.output_dir
+    return save_path
+
+
+def save_history(history: History, save_path: str, cfg: DictConfig) -> None:
     print(f"Saving to {save_path}")
     with open(os.path.join(save_path, "config.yaml"), "w") as f:
         OmegaConf.save(cfg, f)
@@ -103,9 +107,10 @@ def run_parallel(cfg: DictConfig) -> None:
 
 @hydra.main(config_path="conf", config_name="base", version_base=None)
 def main(cfg: DictConfig) -> None:
+    save_path = generate_save_path(cfg)
     find_pre_downloaded_or_download_dataset(cfg)
     history = run_parallel(cfg)
-    save_history(history, cfg)
+    save_history(history, save_path, cfg)
 
 
 if __name__ == "__main__":
