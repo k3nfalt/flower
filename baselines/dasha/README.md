@@ -47,7 +47,17 @@ dataset: [cifar10, mushroom, libsvm]
 
 ## Environment Setup
 
-:warning: _The Python environment for all baselines should follow these guidelines in the `EXTENDED_README`. Specify the steps to create and activate your environment. If there are any external system-wide requirements, please include instructions for them too. These instructions should be comprehensive enough so anyone can run them (if non standard, describe them step-by-step)._
+To construct the Python environment follow these steps:
+
+```bash
+# Install the base Poetry environment
+# By default, it is assumed that the user has Python 3.8 and CUDA 11.8. 
+# If you have a different setup, then change the "torch" and "torchvision" lines in [tool.poetry.dependencies] to the relevant system setup.
+poetry install
+
+# Activate the environment
+poetry shell
+```
 
 
 ## Running the Experiments
