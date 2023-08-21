@@ -38,9 +38,16 @@ def _get_dataset_input_shape(dataset):
 
 def save_history(history, cfg: DictConfig):
     if cfg.save_path is not None:
-        assert not os.path.exists(cfg.save_path)
-        os.mkdir(cfg.save_path)
-        save_path = cfg.save_path
+        if HydraConfig.get().mode == hydra.types.RunMode.MULTIRUN:
+            if HydraConfig.get().job.id == '0':
+                assert not os.path.exists(cfg.save_path)
+                os.mkdir(cfg.save_path)
+            save_path = os.path.join(cfg.save_path, str(HydraConfig.get().job.id))
+            os.mkdir(save_path)
+        else:
+            assert not os.path.exists(cfg.save_path)
+            os.mkdir(cfg.save_path)
+            save_path = cfg.save_path
     else:
         save_path = HydraConfig.get().runtime.output_dir
     print(f"Saving to {save_path}")
