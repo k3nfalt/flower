@@ -42,7 +42,7 @@ dataset: [cifar10, mushrooms, libsvm]
 | mushrooms | 2 | random |
 | cifar10 | 10 | random |
 
-****Training Hyperparameters:**** In all experiments, we take parameters of algorithms predicted by the theory, except for the step sizes. In the case of the mushrooms's experiments, the step sizes are fine-tuned from the set of powers of two $\{2^i\,|\,i \in [-10, 10]\}.$ In the case of cifar10's experiments, the step sizes are fixed to $0.01.$
+****Training Hyperparameters:**** In all experiments, we take parameters of algorithms predicted by the theory, except for the step sizes. In the case of the mushrooms's experiments, the step sizes are fine-tuned from the set of powers of two $\{0.25,0.5,1.0\}.$ In the case of cifar10's experiments, the step sizes are fixed to $0.01.$
 
 
 ## Environment Setup
@@ -84,16 +84,12 @@ python -m dasha.main method=marina
 
 
 ## Expected Results
+### Small-Scale Experiments
 
-:warning: _Your baseline implementation should replicate several of the experiments in the original paper. Please include here the exact command(s) needed to run each of those experiments followed by a figure (e.g. a line plot) or table showing the results you obtained when you ran the code. Below is an example of how you can present this. Please add command followed by results for all your experiments._
+With the following command we run both DASHA and MARINA methods while iterating through different values of `step size`. Other parameters are the same as in the original paper.
 
 ```bash
-# it is likely that for one experiment you need to sweep over different hyperparameters. You are encouraged to use Hydra's multirun functionality for this. This is an example of how you could achieve this for some typical FL hyperparameteres
-
-poetry run -m <baseline-name>.main --multirun num_client_per_round=5,10,50 dataset=femnist,cifar10
-# the above command will run a total of 6 individual experiments (because 3client_configs x 2datasets = 6 -- you can think of it as a grid).
-
-[Now show a figure/table displaying the results of the above command]
+python -m dasha.main --multirun method=dasha,marina compressor.number_of_coordinates=10 method.strategy.step_size=0.25,0.5,1.0 method.client.send_gradient=true
 
 # add more commands + plots for additional experiments.
 ```
