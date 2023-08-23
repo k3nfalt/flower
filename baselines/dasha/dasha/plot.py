@@ -4,10 +4,16 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.ndimage
 
 from omegaconf import OmegaConf
 
 from dasha.strategy import CompressionAggregator
+
+
+def moving_average(x, w):
+    w = np.ones((w,)) / w
+    return scipy.ndimage.convolve1d(x, w)
 
 
 def plot(args) -> None:
@@ -30,18 +36,25 @@ def plot(args) -> None:
         received_bytes_rounds, received_bytes = list(zip(*metric))
         if args.metric == 'loss':
             rounds, losses = list(zip(*history.losses_distributed))
+            axs.set_yscale('log')
         elif args.metric == CompressionAggregator.SQUARED_GRADIENT_NORM:
             metrics = history.metrics_distributed[CompressionAggregator.SQUARED_GRADIENT_NORM]
+            rounds, losses = list(zip(*metrics))
+            axs.set_yscale('log')
+        elif args.metric == CompressionAggregator.ACCURACY:
+            metrics = history.metrics_distributed[CompressionAggregator.ACCURACY]
             rounds, losses = list(zip(*metrics))
         np.testing.assert_array_equal(received_bytes_rounds, rounds)
         target = cfg.method.client._target_
         client = target.split(".")[-1]
-        axs.plot(np.asarray(received_bytes), np.asarray(losses),
+        losses = np.asarray(losses)
+        if args.smooth_plot is not None:
+            losses = moving_average(losses, args.smooth_plot)
+        axs.plot(np.asarray(received_bytes), losses,
                  label=f"{client}; Step size: {cfg.method.strategy.step_size}")
         axs.set_ylabel(args.metric)
         axs.set_xlabel("#bits / client")
         axs.legend(loc="upper left")
-        axs.set_yscale('log')
         fig.savefig(args.output_path)
 
 if __name__ == "__main__":
@@ -64,6 +77,12 @@ if __name__ == "__main__":
         type=str,
         default='loss',
         help="Type of metric to plot",
+    )
+    parser.add_argument(
+        "--smooth-plot",
+        type=int,
+        default=None,
+        help="Smooth plot in a window",
     )
     args = parser.parse_args()
     plot(args)

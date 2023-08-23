@@ -29,6 +29,7 @@ from dasha.client import DashaClient, MarinaClient, CompressionClient
 class CompressionAggregator(Strategy):
     _EMPTY_CONFIG = {}
     _SKIPPED = 'skipped'
+    ACCURACY = 'accuracy'
     SQUARED_GRADIENT_NORM = 'squared_gradient_norm'
     RECEIVED_BYTES = 'received_bytes'
     def __init__(self, step_size, num_clients):
