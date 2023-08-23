@@ -109,5 +109,5 @@ mkdir -p $HOME/.flower/dataset
 python -m dasha.main ???
 python -m dasha.main ???
 # Plot results
-python -m dasha.plot ???
+python -m dasha.plot --input_paths /home/tyurina/hydra_outputs/2023-08-20/15-25-23 /home/tyurina/hydra_outputs/2023-08-20/15-25-10 --output_path ~/tmp/tmp.pdf
 ```
