@@ -3,6 +3,7 @@ import traceback
 import time
 import os
 import pickle
+import random
 
 from typing import Tuple, Optional
 # import concurrent.futures
@@ -15,6 +16,7 @@ from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 
 import numpy as np
+import torch
 
 import flwr as fl
 from flwr.server.history import History
@@ -27,7 +29,7 @@ LOCAL_ADDRESS = "localhost:8080"
 
 
 def _generate_seed(generator):
-    return generator.integers(10e9)
+    return generator.integers(2**32 - 1)
 
 
 def _get_dataset_input_shape(dataset):
@@ -63,6 +65,9 @@ def save_history(history: History, save_path: str, cfg: DictConfig) -> None:
 
 def _parallel_run(cfg: DictConfig, index_parallel: int, seed: int, queue: multiprocessing.Queue) -> None:
     try:
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
         local_address = cfg.local_address if cfg.local_address is not None else LOCAL_ADDRESS
         if index_parallel == 0:
             strategy_instance = instantiate(cfg.method.strategy, num_clients=cfg.num_clients)
