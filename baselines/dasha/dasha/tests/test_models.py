@@ -22,7 +22,7 @@ class TestSmokeLinearNetWithNonConvexLoss(unittest.TestCase):
 class TestSmokeResNet18WithLogisticLoss(unittest.TestCase):
 
     def test(self) -> None:
-        features = torch.rand(3, 3, 224, 224)
+        features = torch.rand(3, 3, 32, 32)
         targets = torch.Tensor([0, 8, 6])
         model = ResNet18WithLogisticLoss(features[0].shape)
         loss = model(features, targets)

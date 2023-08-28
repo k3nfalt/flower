@@ -9,6 +9,9 @@ import torch.nn as nn
 from torchvision.models import resnet18
 
 
+from dasha.resnet import ResNet18
+
+
 class ClassificationModel(nn.Module):
     def __init__(self, input_shape: List[int], *args, **kwargs):
         super(ClassificationModel, self).__init__()
@@ -70,7 +73,7 @@ class LinearNetWithNonConvexLoss(ClassificationModel):
 class ResNet18WithLogisticLoss(ClassificationModel):
     def __init__(self, input_shape: List[int], num_classes: int = 10) -> None:
         super().__init__(input_shape)
-        self._net = resnet18(num_classes=num_classes)
+        self._net = ResNet18(num_classes=num_classes)
         self._loss = torch.nn.CrossEntropyLoss()
     
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
