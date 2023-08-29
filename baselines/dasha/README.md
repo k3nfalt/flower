@@ -113,4 +113,6 @@ python dasha/main.py dataset.path_to_dataset=$HOME/.flower/dataset method=stocha
 python ./dasha/plot.py --input_paths PATH_DASHA PATH_MARINA --output_path $HOME/.flower/plot_nn.png --smooth-plot 100
 ```
 
+<!---/home/tyurina/hydra_outputs/2023-08-28/21-54-53 /home/tyurina/hydra_outputs/2023-08-29/09-24-27--->
+
 ![](docs/plot_nn.png)
