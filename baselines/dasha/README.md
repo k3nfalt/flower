@@ -106,8 +106,11 @@ In the following experiments, we compare the performance of DASHA and MARINA on 
 ```bash
 mkdir -p $HOME/.flower/dataset
 # Run experiments
-python -m dasha.main ???
-python -m dasha.main ???
+python dasha/main.py dataset.path_to_dataset=$HOME/.flower/dataset method.strategy.step_size=0.01 method=stochastic_dasha num_rounds=10000 compressor.number_of_coordinates=2000000 model=resnet_18_with_logistic_loss method.client.strict_load=false dataset=cifar10 method.client.device=cuda method.client.evaluate_accuracy=true local_address=localhost:8001 method.client.mega_batch_size=16
+python dasha/main.py dataset.path_to_dataset=$HOME/.flower/dataset method=stochastic_marina method.strategy.step_size=0.01 num_rounds=10000 compressor.number_of_coordinates=2000000 model=resnet_18_with_logistic_loss method.client.strict_load=false dataset=cifar10 method.client.device=cuda method.client.evaluate_accuracy=true local_address=localhost:8002
+# The previous scripts output paths to the results. We define them as PATH_DASHA and PATH_MARINA
 # Plot results
-python -m dasha.plot --input_paths /home/tyurina/hydra_outputs/2023-08-20/15-25-23 /home/tyurina/hydra_outputs/2023-08-20/15-25-10 --output_path ~/tmp/tmp.pdf
+python ./dasha/plot.py --input_paths PATH_DASHA PATH_MARINA --output_path $HOME/.flower/plot_nn.png --smooth-plot 100
 ```
+
+![](docs/plot_nn.png)
